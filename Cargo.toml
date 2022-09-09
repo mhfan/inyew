@@ -1,19 +1,25 @@
+
 [package]
-name = "frontend"
+name = "inyew"
 version = "0.1.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
+authors = ["MeiHui FAN <mhfan@ustc.edu>"]
+description = "Page for 24-Game/Puzzle/Challenge"
+#repository = "https://github.com/mhfan/inyew
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 yew = "0.19"
-serde = "1.0.117"
-reqwasm = "0.4.1"
-gloo = "0.6.0"
-yew-router = "0.16.0"
+serde = "1.0"
+reqwasm = "0.5"
+gloo = "0.8"
+yew-router = "0.16"
 
 [dependencies.web-sys]
-version = "0.3.56"
-features = [
-    "HtmlInputElement",
-]
+version  = "0.3"
+features = [ "HtmlInputElement", ]
+
+[workspace]
+

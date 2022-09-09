@@ -5,27 +5,20 @@ use yew_router::prelude::*;
 // for {username}.github.io/{repo_name}
 // replace 'yew-template-for-github.io' to your repo name
 
-#[derive(Clone, Routable, PartialEq)]
-enum RootRoute {
-    #[at("/yew-template-for-github-io/")]
-    Home,
-    #[at("/yew-template-for-github-io/:s")]
-    Route,
+#[derive(Clone, Routable, PartialEq)] enum RootRoute {
+    #[at("/inyew/")] Home,
+    #[at("/inyew/:s")] Route,
 }
 
-#[derive(Clone, Routable, PartialEq)]
-enum Route {
-    #[at("/yew-template-for-github-io/about")]
-    About,
-    #[not_found]
-    #[at("/yew-template-for-github-io/404")]
-    NotFound,
+#[derive(Clone, Routable, PartialEq)] enum Route {
+    #[at("/inyew/about")] About,
+    #[at("/inyew/404")] #[not_found] NotFound,
 }
 
 fn root_route(routes: &RootRoute) -> Html {
     match routes {
-        RootRoute::Home => html! { <p class="text-4xl">{ "Yew Template. " }</p> },
-        RootRoute::Route => html! {
+        RootRoute::Home  => html! { <p class="text-4xl">{ "24 Game/Puzzle/Challenge" }</p> },
+        RootRoute::Route => html!{
             <Switch<Route> render={Switch::render(switch)} />
         },
     }
@@ -33,42 +26,35 @@ fn root_route(routes: &RootRoute) -> Html {
 
 fn switch(routes: &Route) -> Html {
     match routes {
-        Route::About => html! { <p>{ "About" }</p> },
-        Route::NotFound => html! { <p>{ "Not Found" }</p> },
+        Route::About => html!{ <p>{ "About" }</p> },
+        Route::NotFound => html!{ <p>{ "Not Found" }</p> },
     }
 }
 
-// ===================================================================================
+/* ===================================================================================
 // for {username}.github.io
 
-// #[derive(Clone, Routable, PartialEq)]
-//  enum RootRoute {
-//      #[at("/")]
-//      Home,
-//      #[at("/about")]
-//      About,
-//      #[not_found]
-//      #[at("/404")]
-//      NotFound,
-//  }
+#[derive(Clone, Routable, PartialEq)] enum RootRoute {
+    #[at("/")] Home,
+    #[at("/about")] About,
+    #[at("/404")] #[not_found] NotFound,
+}
 
-//  fn root_route(routes: &Route) -> Html {
-//      match routes {
-//          RootRoute::Home => html! { <p class="text-4xl">{ "Yew Template" }</p> },
-//          RootRoute::About => html! { <p>{ "About" }</p> },
-//          RootRoute::NotFound => html! { <p>{ "Not Found" }</p> },
-//      }
-//  }
+fn root_route(routes: &Route) -> Html {
+    match routes {
+        RootRoute::Home => html!{ <p class="text-4xl">{ "Yew Template" }</p> },
+        RootRoute::About => html!{ <p>{ "About" }</p> },
+        RootRoute::NotFound => html!{ <p>{ "Not Found" }</p> },
+    }
+}
 
-// ===================================================================================
+// =================================================================================== */
 
-/// main root
-#[function_component(App)]
-fn app() -> Html {
-    html! {
+#[function_component(App)] fn app() -> Html {   // main root
+    html!{
         // ********************************************************
         // **    basename is not supported on yew 0.19.0 yet.    **
-        // <BrowserRouter basename="/yew-template-for-github-io/">
+        // <BrowserRouter basename="/inyew/">
         //     <Switch<Route> render={Switch::render(switch)} />
         // </BrowserRouter>
         // ********************************************************
@@ -78,7 +64,6 @@ fn app() -> Html {
     }
 }
 
-/// entry point
-fn main() {
+fn main() {     // entry point
     yew::start_app::<App>();
 }
