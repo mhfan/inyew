@@ -14,12 +14,20 @@ description = "Page for 24-Game/Puzzle/Challenge"
 yew = "0.19"
 serde = "1.0"
 reqwasm = "0.5"
-gloo = "0.8"
 yew-router = "0.16"
+gloo = "0.8"
+rand = "0.8"
+
+[dependencies.getrandom]
+features = [ "js", ]
+version  = "0.2"
 
 [dependencies.web-sys]
-version  = "0.3"
 features = [ "HtmlInputElement", ]
+version  = "0.3"
+
+[profile.dev]
+incremental = true
 
 [workspace]
 

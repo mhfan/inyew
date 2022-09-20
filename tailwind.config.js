@@ -18,9 +18,18 @@ function findAllRsExtensions(dir) {
 module.exports = {
   content: findAllRsExtensions("./src"),
   theme: {
+    //extend: {},
     container: {
       center: true,
     }
   },
-  plugins: [],
+  plugins: [
+    //require('@tailwindcss/typography'),
+    //require('@tailwindcss/forms'),
+    //require('@tailwindcss/line-clamp'),
+    //require('@tailwindcss/aspect-ratio'),
+    require('tw-elements/dist/plugin')
+  ],
+  //presets: [ require('@acmecorp/tailwind-base') ],
+  // https://github.com/tailwindlabs/tailwindcss/blob/master/stubs/defaultConfig.stub.js
 }
