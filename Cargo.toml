@@ -17,13 +17,15 @@ reqwasm = "0.5"
 yew-router = "0.16"
 gloo = "0.8"
 rand = "0.8"
+log = "0.4"
+wasm-logger = "0.2"
 
 [dependencies.getrandom]
 features = [ "js", ]
 version  = "0.2"
 
 [dependencies.web-sys]
-features = [ "HtmlInputElement", ]
+features = [ "HtmlInputElement", "HtmlSelectElement", "HtmlButtonElement", ]
 version  = "0.3"
 
 [profile.dev]
