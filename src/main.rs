@@ -15,7 +15,7 @@ use yew_router::prelude::*;
     #[at("/inyew/404")] #[not_found] NotFound,
 }
 
-fn root_route(routes: &RootRoute) -> Html {
+#[function_component(Game24)] fn game24() -> Html {
     let court = [ "T", "J", "Q", "K" ];
     let suits = [ "S", "C", "D", "H" ];     // "♣♦♥♠"
     let mut poker= (0..52).collect::<Vec<_>>();
@@ -41,14 +41,45 @@ fn root_route(routes: &RootRoute) -> Html {
         }
     }).collect::<Html>();
 
-    let ops = [ "+", "-", "×", "÷" ].into_iter().map(|op| { html!{ <div class="m-4">
-        <input type="radio" id={ op } name="input-ops" class="hidden peer"/>
-        <label for={ op } class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 text-3xl peer-checked:outline-none peer-checked:ring-2 peer-checked:ring-indigo-500 peer-checked:ring-offset-2 peer-checked:bg-transparent rounded-md shadow-xl" data-bs-toggle="tooltip" title="Click to select/unselect\nDrag over to replace">{ op }</label>
-    </div> }}).collect::<Html>();
+    let ops = [ "+", "-", "×", "÷" ].into_iter().map(|op| {
+        let ops_change = Callback::from(|e: Event| {
+            let target = e.current_target().unwrap();
+            dbg!(e); dbg!(target);
+        });
+
+        html!{ <div class="m-4">
+            <input type="radio" id={ op } name="select-ops" class="hidden peer"/>
+            <label for={ op } onchange={ ops_change } class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 text-3xl peer-checked:outline-none peer-checked:ring-2 peer-checked:ring-indigo-500 peer-checked:ring-offset-2 peer-checked:bg-transparent rounded-md shadow-xl" data-bs-toggle="tooltip" title="Click to select/unselect\nDrag over to replace">{ op }</label>
+        </div> }
+    }).collect::<Html>();
 
     let ctrl_class = "text-gray-900 bg-gradient-to-r from-lime-200 via-lime-400 to-lime-500 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-lime-300 dark:focus:ring-lime-800 shadow-lg shadow-lime-500/50 dark:shadow-lg dark:shadow-lime-800/80 font-bold rounded-lg px-4 py-2 m-4";
 
+    let num_options = (4..=8).map(|n| html!{
+        <option value={ n.to_string() } selected={ n == 4 }>{ format!("{n} nums") }</option>
+    }).collect::<Html>();
+
     // https://stackoverflow.com/questions/62554142/how-to-select-multiple-button-options-on-same-html-page-using-tailwind-css
+    html!{ <main>
+        //<div id="play-cards"/>
+
+        <div id="ops-group" class="flex place-content-center">{ ops }</div>
+
+        <div id="expr-skel">{ nums }
+            <label class="text-white font-bold py-2 px-4 m-4 text-3xl rounded-md" data-bs-toggle="tooltip" title="Click to calculate">{ "≠?" }</label>
+            <button class={classes!(num_class, "rounded-md")} data-bs-toggle="tooltip" title="Double click to input new goal">{ goal.to_string() }</button>
+        </div>
+
+        <div id="ctrl-btns">
+            <select class={classes!(ctrl_class)} data-bs-toogle="tooltip" title="Click to select numbers count">{ num_options }</select>
+            <button class={classes!(ctrl_class)} data-bs-toogle="tooltip" title="Click to break down selected compound expression">{ "Restore" }</button>
+            <button class={classes!(ctrl_class)} data-bs-toogle="tooltip" title="Click to refresh new round game">{ "Refresh" }</button>
+        </div>
+    </main> }
+}
+
+fn root_route(routes: &RootRoute) -> Html {
+    #[allow(clippy::let_unit_value)]
     match routes {
         RootRoute::Home  => html!{ <>
             //margin: 0 auto;   //class: justify-center;
@@ -58,35 +89,12 @@ fn root_route(routes: &RootRoute) -> Html {
             <br/> <h1 class="text-4xl">{ "24 Game/Puzzle/Challenge" }</h1> <br/>
             </header>
 
-            <main>
-            <div id="play-cards"/>
-
-            <div id="ops-group" class="flex place-content-center">{ ops }</div>
-
-            <div id="expr-skel">{ nums }
-                <label class="text-white font-bold py-2 px-4 m-4 text-3xl rounded-md" data-bs-toggle="tooltip" title="Click to calculate">{ "≠?" }</label>
-                <button class={classes!(num_class, "rounded-md")} data-bs-toggle="tooltip" title="Double click to input new goal">{ goal.to_string() }</button>
-            </div>
-
-            <div id="controller">
-                <select class={classes!(ctrl_class)} data-bs-toogle="tooltip" title="Click to select numbers">
-                    <option value="4" selected=true>{ "4 nums" }</option>
-                    <option value="5">{ "5 nums" }</option>
-                    <option value="6">{ "6 nums" }</option>
-                    <option value="7">{ "7 nums" }</option>
-                    <option value="8">{ "8 nums" }</option>
-                </select>
-                <button class={classes!(ctrl_class)} data-bs-toogle="tooltip" title="Click to break down selected compound expression">{ "Restore" }</button>
-                <button class={classes!(ctrl_class)} data-bs-toogle="tooltip" title="Click to refresh new round game">{ "Refresh" }</button>
-            </div>
-            </main>
+            <Game24 />
 
             //<footer> <br/><p>{ "Copyright © 2022, mhfan" }</p><br/> </footer>   // &copy;
-            </> },
+        </> },
 
-        RootRoute::Route => html!{
-            <Switch<Route> render={Switch::render(switch)} />
-        },
+        RootRoute::Route => html!{ <Switch<Route> render={Switch::render(switch)} /> },
     }
 }
 
@@ -118,12 +126,12 @@ fn root_route(routes: &Route) -> Html {
 
 #[function_component(App)] fn app() -> Html {   // main root
     html!{
-        // ********************************************************
-        // **    basename is not supported on yew 0.19.0 yet.    **
-        // <BrowserRouter basename="/inyew/">
-        //     <Switch<Route> render={Switch::render(switch)} />
-        // </BrowserRouter>
-        // ********************************************************
+        /********************************************************
+         **    basename is not supported on yew 0.19.0 yet.    **
+        <BrowserRouter basename="/inyew/">
+            <Switch<Route> render={Switch::render(switch)} />
+        </BrowserRouter>
+        // ******************************************************/
         <BrowserRouter>
             <Switch<RootRoute> render={Switch::render(root_route)} />
         </BrowserRouter>
