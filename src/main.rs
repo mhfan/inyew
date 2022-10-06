@@ -29,7 +29,7 @@ use yew_router::prelude::*;
     (pkns, _rems) = _rems.partial_shuffle(&mut rng, cnt);
 
     use yew::TargetCast;
-    use web_sys::{HtmlInputElement, HtmlSelectElement, HtmlButtonElement};
+    use web_sys::{HtmlInputElement, HtmlSelectElement}; // HtmlButtonElement
 
     let ops_selected = Callback::from(|e: Event| {
         // You must KNOW target is a HtmlInputElement, otherwise
@@ -52,17 +52,39 @@ use yew_router::prelude::*;
     let cnt_changed = Callback::from(|e: Event| {
         e.target_dyn_into::<HtmlSelectElement>().map(|sel| {
             // TODO: cnt = sel.value(); -> then 'pkns' then 'nums'
-            log::info!("{}", sel.value());  sel.value()
+            log::info!("{}", sel.value());  Some(())    // sel.inner_text()
+        });
+    });
+
+    let refresh = Callback::from(|_| {
+        web_sys::window().map(|window| window.location().reload());
+    });
+
+    // TODO: drag feature
+
+    let num_dblclick = Callback::from(|e: MouseEvent| {
+        //if let Ok(Some(sel)) = web_sys::window().unwrap().document().unwrap()
+        //    .get_selection() { sel.remove_all_ranges().expect(""); }
+        e.target_dyn_into::<HtmlInputElement>().map(|inp| {
+            let end = inp.value().len() as u32;
+            inp.set_selection_range(end, end).expect("");   //inp.focus().expect("");
+            inp.remove_attribute("readonly")
+        });
+    });
+
+    let num_onblur = Callback::from(|e: FocusEvent| {
+        e.target_dyn_into::<HtmlInputElement>().map(|inp| {
+            inp.set_attribute("readonly", "readonly")
         });
     });
 
     let num_selected = Callback::from(|e: FocusEvent| {
-        e.target_dyn_into::<HtmlButtonElement>().map(|btn| {
-            log::info!("{}", btn.inner_text());     btn.inner_text()
+        e.target_dyn_into::<HtmlInputElement>().map(|inp| {
+            log::info!("{}", inp.value());  Some(())
         });
     });
 
-    let num_class = "px-4 py-2 m-4 w-16 text-2xl text-purple-600 font-semibold border border-purple-200 hover:text-white hover:bg-purple-600 hover:border-transparent focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2 shadow-xl";
+    let num_class = "px-4 py-2 m-4 min-w-16 w-fit bg-transparent text-center text-2xl text-purple-600 font-semibold border border-purple-200 hover:text-white hover:bg-purple-600 hover:border-transparent focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2 shadow-xl";
     let nums = pkns.iter().map(|pkn| {
         let (num, sid) = ((pkn % 13) + 1, (pkn / 13)/* % 4 */);
         let _ = format!(r"{}{}.svg", match num { 1 => "A".to_owned(),
@@ -70,39 +92,40 @@ use yew_router::prelude::*;
             _ => "?".to_owned() }, suits[sid]);     //num
 
         html!{
-            <button class={classes!(num_class, "rounded-full")} data-bs-toggle="tooltip" title="Click to select/unselect\nDrag over to exchange\nDouble click to input new number">{ num.to_string() }</button>
-            // https://en.wikipedia.org/wiki/Playing_cards_in_Unicode
+            <input type="text" value={ num.to_string() } placeholder="?" inputmode="numeric" pattern=r"-?\d+" maxlength="3" size="3" draggable="true" readonly=true class={ classes!(num_class, "rounded-full") } data-bs-toggle="tooltip" title="Click to select/unselect\nDrag over to exchange\nDouble click to input new number"/>
+            // XXX: https://en.wikipedia.org/wiki/Playing_cards_in_Unicode
         }
     }).collect::<Html>();
 
     let ops = [ "+", "-", "×", "÷" ].into_iter().map(|op| html!{
         <div class="m-4">
             <input type="radio" id={ op } name="select-ops" class="hidden peer"/>
-            <label for={ op } class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 text-3xl peer-checked:outline-none peer-checked:ring-2 peer-checked:ring-indigo-500 peer-checked:ring-offset-2 peer-checked:bg-transparent rounded-md shadow-xl" data-bs-toggle="tooltip" title="Click to select/unselect\nDrag over to replace">{ op }</label>
+            <label for={ op } draggable="true" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 text-3xl peer-checked:outline-none peer-checked:ring-2 peer-checked:ring-indigo-500 peer-checked:ring-offset-2 peer-checked:bg-transparent rounded-md shadow-xl" data-bs-toggle="tooltip" title="Click to select/unselect\nDrag over to replace">{ op }</label>
         </div>
     }).collect::<Html>();
 
     let ctrl_class = "text-gray-900 bg-gradient-to-r from-lime-200 via-lime-400 to-lime-500 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-lime-300 dark:focus:ring-lime-800 shadow-lg shadow-lime-500/50 dark:shadow-lg dark:shadow-lime-800/80 font-bold rounded-lg px-4 py-2 m-4";
 
     let cnt_options = (4..=6).map(|n| html!{
-        <option value={ n.to_string() } selected={ n == 4 }>{ format!("{n} nums") }</option>
+        <option value={ n.to_string() } selected={ n == cnt }>{ format!("{n} nums") }</option>
     }).collect::<Html>();
 
     // https://stackoverflow.com/questions/62554142/how-to-select-multiple-button-options-on-same-html-page-using-tailwind-css
     html!{ <main>
-        //<div id="play-cards"/>
+        //<div id="play-cards"/>    // TODO:
 
         <div id="ops-group" onchange={ ops_selected } class="flex place-content-center">{ ops }</div>
 
-        <div id="expr-skel" onfocus={ num_selected }>{ nums }
+        <div id="expr-skel select-none" user-select="none">     // XXX: why not working?
+            <span onfocus={ num_selected } ondblclick={ num_dblclick.clone() } onblur={ num_onblur.clone() }>{ nums }</span>
             <label class="text-white font-bold py-2 px-4 m-4 text-3xl rounded-md" data-bs-toggle="tooltip" title="Click to calculate">{ "≠?" }</label>
-            <button class={classes!(num_class, "rounded-md")} data-bs-toggle="tooltip" title="Double click to input new goal">{ goal.to_string() }</button>
+            <input type="text" value={ goal.to_string() } placeholder="??" inputmode="numeric" pattern=r"-?\d+" maxlength="4" size="4" readonly=true name="goal" ondblclick={ num_dblclick } onblur={ num_onblur } class={ classes!(num_class, "rounded-md") } data-bs-toggle="tooltip" title="Double click to input new goal"/>
         </div>
 
         <div id="ctrl-btns">
-            <select class={classes!(ctrl_class)} onchange={ cnt_changed } data-bs-toogle="tooltip" title="Click to select numbers count">{ cnt_options }</select>
-            <button class={classes!(ctrl_class)} data-bs-toogle="tooltip" title="Click to break down selected compound expression">{ "Restore" }</button>
-            <button class={classes!(ctrl_class)} data-bs-toogle="tooltip" title="Click to refresh new round game">{ "Refresh" }</button>
+            <select class={ classes!(ctrl_class) } onchange={ cnt_changed } data-bs-toogle="tooltip" title="Click to select numbers count">{ cnt_options }</select>
+            <input type="reset" value={ "Restore" } class={ classes!(ctrl_class) } data-bs-toogle="tooltip" title="Click to break down selected compound expression"/> //{ "Restore" } </button>    // XXX:
+            <button class={ classes!(ctrl_class) } onclick={ refresh } data-bs-toogle="tooltip" title="Click to refresh new round game">{ "Refresh" }</button>
         </div>
     </main> }
 }
@@ -111,8 +134,8 @@ fn root_route(routes: &RootRoute) -> Html {
     #[allow(clippy::let_unit_value)]
     match routes {
         RootRoute::Home  => html!{ <>
-            //margin: 0 auto;   //class: justify-center;
-            <style> { r" body { text-align: center; } " } </style>
+            //margin: 0 auto;   //class: justify-center;    // XXX: not working
+            <style>{ r" body { text-align: center; } " }</style>
 
             <header>
             <br/> <h1 class="text-4xl">{ "24 Game/Puzzle/Challenge" }</h1> <br/>

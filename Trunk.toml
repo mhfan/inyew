@@ -1,8 +1,8 @@
 
 [build]
 target = "index.html"
-dist = "dist"
 release = false
+dist = "dist"
 
 public_url = "/inyew/"
 # "/{project_name}/" for {username}.github.io/{project_name}, "/" for {username}.github.io
@@ -12,6 +12,7 @@ watch = [ "./index.html", "src/", "css/", "static/", ]
 
 [clean]
 dist = "dist"
+#cargo = false
 
 [[hooks]]
 command = "sh"
