@@ -12,20 +12,21 @@ description = "Page for 24-Game/Puzzle/Challenge"
 
 [dependencies]
 yew = "0.19"
-serde = "1.0"
-reqwasm = "0.5"
 yew-router = "0.16"
-gloo = "0.8"
+#reqwasm = "0.5"
+#serde = "1.0"
+#gloo = "0.8"
 rand = "0.8"
-log = "0.4"
-wasm-logger = "0.2"
+log  = "0.4"
+wasm-logger  = "0.2"
+wasm-bindgen = "0.2"
 
 [dependencies.getrandom]
 features = [ "js", ]
 version  = "0.2"
 
 [dependencies.web-sys]
-features = [ "HtmlInputElement", "HtmlSelectElement", "HtmlButtonElement", ]
+features = [ "HtmlInputElement", "HtmlSelectElement", "HtmlCollection", ]
 version  = "0.3"
 
 [profile.dev]
