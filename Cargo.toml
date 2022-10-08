@@ -26,7 +26,8 @@ features = [ "js", ]
 version  = "0.2"
 
 [dependencies.web-sys]
-features = [ "HtmlInputElement", "HtmlSelectElement", "HtmlCollection", ]
+features = [ "HtmlInputElement", "HtmlSelectElement", "HtmlLabelElement",
+             "HtmlCollection", "Selection", ]
 version  = "0.3"
 
 [profile.dev]
