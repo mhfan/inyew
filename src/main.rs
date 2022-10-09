@@ -15,8 +15,9 @@ use yew_router::prelude::*;
     #[at("/inyew/404")] #[not_found] NotFound,
 }
 
-use wasm_bindgen::JsCast;
 use web_sys::{HtmlInputElement, HtmlLabelElement};
+use {wasm_bindgen::JsCast, js_sys::Function};
+use std::collections::VecDeque;
 
 struct Game24 {
     goal: i32,
@@ -27,7 +28,8 @@ struct Game24 {
     cnt: usize,
 
     elem_op: Option<HtmlInputElement>,
-    elem_na: Option<HtmlInputElement>,
+    elem_nq: VecDeque<HtmlInputElement>,
+    dblclick: Option<Function>,
 }
 
 impl Game24 {
@@ -39,7 +41,76 @@ impl Game24 {
         if self.pos == 0 { self.deck.shuffle(&mut rng); }
 
         self.nums = self.deck[self.pos..].partial_shuffle(&mut rng, n).0.to_owned();
-        self.pos += n;  // FIXME: solvable assurance
+        self.pos += n;  // TODO: solvable assurance
+    }
+
+    fn combine(&mut self) {
+        let nq = &mut self.elem_nq;
+        let op = self.elem_op.as_ref().unwrap();
+        let str = format!("({} {} {})", nq[0].value(), op.value(), nq[1].value());
+        log::info!("{str}");
+
+        if let Some(lbl) = nq[1].next_element_sibling()
+            .and_then(|el| el.dyn_into::<HtmlLabelElement>().ok()) {
+            lbl.set_inner_text(str.as_str());
+
+            let lbl = nq[0].next_element_sibling().unwrap()
+                .dyn_into::<HtmlLabelElement>().unwrap();
+            lbl.set_hidden(true);
+        } else {    nq[0].set_hidden(true);
+
+            nq[1].set_max_length(str.len() as i32);
+            nq[1].set_size (str.len() as u32);
+            nq[1].set_value(str.as_str());
+        }
+
+        self.cnt += 1;  if self.cnt == 2 {
+            let parent = nq[0].parent_element().unwrap()
+                    .dyn_into::<web_sys::HtmlElement>().unwrap();
+            self.dblclick = parent.ondblclick();
+            if self.dblclick.is_some() { parent.set_ondblclick(None); }
+            else { log::info!("dblclick is none"); }   // FIXME:
+        } else if self.cnt == self.nums.len() {
+            Self::toggle_hl(&nq[1], false);  nq[1].blur().unwrap();
+            // TODO: calculate expression in str, reflect result in equal button
+        }
+
+        op.set_checked(false);  self.elem_op = None;
+        Self::toggle_hl(&nq.pop_front().unwrap(), false);
+    }
+
+    fn clear_state(&mut self) { log::info!("clear state");
+        self.elem_nq.iter().for_each(|el| Self::toggle_hl(el, false));
+        self.elem_nq.clear();   self.elem_op = None;    self.cnt = 1;
+
+        let parent = web_sys::window().unwrap().document().unwrap()
+            .get_element_by_id("num-operands").unwrap();
+        let coll = parent.children();
+        if self.dblclick.is_some() {
+            parent.dyn_into::<web_sys::HtmlElement>().unwrap()
+                .set_ondblclick(self.dblclick.as_ref());
+        }
+
+        for i in 0..coll.length() {
+            if let Ok(inp) = coll.item(i).unwrap()
+                .dyn_into::<HtmlInputElement>() {
+                inp.set_max_length(3);  inp.set_size(3);
+                inp.set_hidden(false);
+            } else {
+                let lbl = coll.item(i).unwrap().last_element_child().unwrap().dyn_into::<HtmlLabelElement>().unwrap();
+                let inp = coll.item(i).unwrap().first_element_child().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                lbl.set_inner_text(inp.value().as_str());
+                lbl.set_hidden(false);
+            }
+        }
+    }
+
+    fn toggle_hl(el: &HtmlInputElement, hl: bool) {
+        if hl {
+            el.class_list().add_2("ring-2", "ring-purple-600").unwrap();
+        } else {
+            el.class_list().remove_2("ring-2", "ring-purple-600").unwrap();
+        }
     }
 }
 
@@ -57,7 +128,7 @@ impl Component for Game24 {
     fn create(_ctx: &Context<Self>) -> Self {
         let mut game = Self { goal: 24, nums: vec![],
             deck: (0..52).collect::<Vec<_>>(), pos: 0, cnt: 1,
-            elem_na: None, elem_op: None,
+            elem_op: None, elem_nq: VecDeque::new(), dblclick: None,
         };  game.dealer(4);     game
     }
 
@@ -65,65 +136,55 @@ impl Component for Game24 {
 fn view(&self, ctx: &Context<Self>) -> Html {
     let link = ctx.link();
     let ops_selected = link.callback(|e: Event| {
-        // You must KNOW target is a HtmlInputElement, otherwise
-        // the call to value would be Undefined Behaviour (UB).
-        //e.target_unchecked_into::<HtmlInputElement>().value();
-        //e.target().unwrap().unchecked_into::<HtmlInputElement>().value();
-
-        // When events are created the target is undefined, it's only
-        // when dispatched does the target get added.
-        // Events can bubble so this listener might catch events from child
-        // elements which are not of type HtmlInputElement
-        //e.target().and_then(|t| t.dyn_into::<HtmlInputElement>().ok())
-        //    .map(|inp| inp.value());
-        //e.target_dyn_into::<HtmlInputElement>().map(|inp| inp.value());
-
         let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
         log::info!("{}", inp.value());  // require value='xxx' in <input>, default is 'on'
         Msg::Operator(inp)
     });
 
     let cnt_changed = link.callback(|e: Event| {
-        let sel = e.target().unwrap().dyn_into::<web_sys::HtmlSelectElement>().unwrap();
+        let sel = e.target().unwrap()
+            .dyn_into::<web_sys::HtmlSelectElement>().unwrap();
         log::info!("{}", sel.inner_text());     //sel.value()
         Msg::Resize(sel.value().parse::<u8>().unwrap())
     });
 
     let restore = link.callback(|_| Msg::Restore);
-
-    let new_refresh = Callback::from(|_| {
-        web_sys::window().map(|window| window.location().reload());
-    });
+    let refresh = link.callback(|_| Msg::Resize(0) );
+    //web_sys::window().map(|window| window.location().reload());
 
     // TODO: drag to exchange/replace
 
     let num_editable = Callback::from(|e: MouseEvent| {
-        //if 1 < self.cnt { return }    // XXX:
-        if let Ok(label) = e.target().unwrap().dyn_into::<HtmlLabelElement>() {
-            label.set_content_editable("true");   label.focus().unwrap();
+        if let Some(lbl) = e.target().and_then(|t|
+            t.dyn_into::<HtmlLabelElement>().ok()) {
+            lbl.set_content_editable("true");   lbl.focus().unwrap();
             web_sys::window().unwrap().get_selection().unwrap().unwrap()
-                .select_all_children(label.as_ref()).expect("");
-            //label.dispatch_event(e.as_ref()).unwrap();    // XXX:
-        } else if let Ok(inp) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
+                .select_all_children(lbl.as_ref()).expect("");
+            //lbl.dispatch_event(e.as_ref()).unwrap();    // XXX:
+        } else if let Some(inp) = e.target().and_then(|t|
+            t.dyn_into::<HtmlInputElement>().ok()) {
             //inp.set_selection_range(end, inp.value().len() as u32).unwrap();
             inp.remove_attribute("readonly").expect("");
         }
     });
 
-    let num_readonly = Callback::from(|e: Event| {
-        if let Ok(label) = e.target().unwrap().dyn_into::<HtmlLabelElement>() {
-            let inp = label.previous_element_sibling().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-            let str = label.inner_text();
+    let num_readonly = Callback::from(|e: FocusEvent| {
+        if let Some(lbl) = e.target().and_then(|t|
+            t.dyn_into::<HtmlLabelElement>().ok()) {
+            let inp = lbl.previous_element_sibling().unwrap()
+                .dyn_into::<HtmlInputElement>().unwrap();
+            let str = lbl.inner_text();
             if  str.parse::<i32>().is_ok() {
-                label.set_content_editable("false");
+                lbl.set_content_editable("false");
                 inp.set_value(str.as_str());
             } else {
                 //inp.dispatch_event(&Event::new("InvalidEvent").unwrap()).unwrap();   // XXX:
                 web_sys::window().unwrap().get_selection().unwrap().unwrap()
-                    .select_all_children(label.as_ref()).expect("");
-                label.focus().unwrap();
+                    .select_all_children(lbl.as_ref()).unwrap();
+                lbl.focus().unwrap();
             }   log::info!("input {}", str);
-        } else if let Ok(inp) = e.target().unwrap().dyn_into::<HtmlInputElement>() {
+        } else if let Some(inp) = e.target().and_then(|t|
+            t.dyn_into::<HtmlInputElement>().ok()) {
             if  inp.check_validity() {
                 inp.set_attribute("readonly", "").unwrap();
             } else {
@@ -151,7 +212,7 @@ fn view(&self, ctx: &Context<Self>) -> Html {
         html!{ //<div>
             //<input type="checkbox" id={ format!("num{_i}") } value={ num.to_string() } class="hidden peer"/>
             //<label for={ format!("num{i}") } draggable="true" class="inline-block single-line px-4 py-2 m-4 min-w-[4rem] bg-transparent text-center text-2xl text-purple-600 font-semibold border border-purple-200 rounded-full hover:text-white hover:bg-purple-600 hover:border-transparent peer-checked:outline-none peer-checked:ring-2 peer-checked:ring-purple-600 peer-checked:ring-offset-2 shadow-xl peer-invalid:border-red-500" data-bs-toggle="tooltip" title="Click to select/unselect\nDrag over to exchange\nDouble click to input new number">{ num }</label>
-            // XXX: num_selected: onchange vs onfocus, num_readonly: onblur vs onchange
+            // XXX: num_selected: onchange vs onfocus
             <input type="text" value={ num.to_string() } placeholder="?" inputmode="numeric" pattern=r"-?\d+" maxlength="3" size="3" draggable="true" readonly=true class={ classes!(num_class, "rounded-full") } data-bs-toggle="tooltip" title="Click to select/unselect\nDrag over to exchange\nDouble click to input new number"/>
             // XXX: https://en.wikipedia.org/wiki/Playing_cards_in_Unicode
         //</div>
@@ -178,22 +239,22 @@ fn view(&self, ctx: &Context<Self>) -> Html {
 
         <div id="expr-skel" class="flex place-content-center">
             <style>{ r"
-                [contenteditable='true'].single-line { white-space: nowrap; overflow: hidden; } 
+                [contenteditable='true'].single-line { white-space: nowrap; overflow: hidden; }
                 [contenteditable='true'].single-line br { display: none; }
-                [contenteditable='true'].single-line  * { display: inline; white-space: nowrap; } 
+                [contenteditable='true'].single-line  * { display: inline; white-space: nowrap; }
             " }</style>
 
-            <div id="num-operands" class="flex place-content-center" onfocus={ num_selected } ondblclick={ num_editable.clone() } onchange={ num_readonly.clone() }>{ nums }</div>
+            <div id="num-operands" class="flex place-content-center" onfocus={ num_selected } ondblclick={ num_editable.clone() } onblur={ num_readonly.clone() }>{ nums }</div>
 
             // data-bs-toggle="collapse" data-bs-target="#all-solutions" aria-expanded="false" aria-controls="all-solutions"
             <button class="py-2 px-4 m-4 text-white text-3xl font-bold rounded-md hover:outline-none hover:ring-2 focus:ring-indigo-500 active:ring-offset-2" data-bs-toggle="tooltip" title="Click to show solutions">{ "≠?" }</button>
-            <input type="text" value={ self.goal.to_string() } placeholder="??" inputmode="numeric" pattern=r"-?\d+" maxlength="4" size="4" readonly=true ondblclick={ num_editable } onchange={ num_readonly } class={ classes!(num_class, "rounded-md") } data-bs-toggle="tooltip" title="Double click to input new goal"/>
+            <input type="text" value={ self.goal.to_string() } placeholder="??" inputmode="numeric" pattern=r"-?\d+" maxlength="4" size="4" readonly=true ondblclick={ num_editable } onblur={ num_readonly } class={ classes!(num_class, "rounded-md") } data-bs-toggle="tooltip" title="Double click to input new goal"/>
         </div>
 
         <div id="ctrl-btns">
             <select class={ classes!(ctrl_class) } onchange={ cnt_changed } data-bs-toogle="tooltip" title="Click to select numbers count">{ cnt_options }</select>
             <input type="reset" value={ "Restore" } onclick={ restore } class={ classes!(ctrl_class) } data-bs-toogle="tooltip" title="Click to break down selected compound expression"/> //{ "Restore" } </button>
-            <button class={ classes!(ctrl_class) } onclick={ new_refresh } data-bs-toogle="tooltip" title="Click to refresh new round game">{ "Refresh" }</button>
+            <button class={ classes!(ctrl_class) } onclick={ refresh } data-bs-toogle="tooltip" title="Click to refresh new round game">{ "Refresh" }</button>
         </div>
 
         <div id="all-solutions" class="collapse block mt-4 max-h-24 overflow-y-auto text-white text-2xl">{ "All solutions" }
@@ -203,58 +264,37 @@ fn view(&self, ctx: &Context<Self>) -> Html {
 
     fn update  (&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::Operator(inp) => { self.elem_op = Some(inp);   false }
+            Msg::Operator(inp) => { self.elem_op = Some(inp);
+                if  self.elem_nq.len() == 2 { self.combine(); }     false
+            }
 
             Msg::Operands(inp) => {
-                if  self.elem_na != None && self.elem_op != None {
-                    let op = self.elem_op.as_ref().unwrap();
-                    let na = self.elem_na.as_ref().unwrap();
-                    if inp.is_same_node(Some(na.as_ref())) { return false }
-                    let str = format!("({} {} {})", na.value(), op.value(), inp.value());
-                    log::info!("{str}");
+                let nq = &mut self.elem_nq;
+                let mut n = nq.len();
+                if  nq.iter().enumerate().any(|(i, el)| {
+                    let same = el.is_same_node(Some(inp.as_ref()));
+                    if same { n = i; }  same }) {
+                    Self::toggle_hl(&inp, false);
+                    if n < nq.len() { nq.remove(n); }
+                } else {
+                    Self::toggle_hl(&inp, true);
+                    nq.push_back(inp);
+                }
 
-                    if let Ok(label) = inp.next_element_sibling().unwrap().dyn_into::<HtmlLabelElement>() {
-                        label.set_inner_text(str.as_str());
+                if 2 < nq.len() {
+                    Self::toggle_hl(&nq.pop_front().unwrap(), false);
+                }
 
-                        let label =  na.next_element_sibling().unwrap().dyn_into::<HtmlLabelElement>().unwrap();
-                        label.set_hidden(true);
-                    } else {
-                        inp.set_max_length(str.len() as i32);
-                        inp.set_size (str.len() as u32);
-                        inp.set_value(str.as_str());
-                         na.set_hidden(true);
-                    }
-
-                    self.cnt += 1;  /* if self.cnt == 2 {
-                        // TODO: disable text input for all numbers
-                    } else if self.cnt == self.nums.len() {
-                        // TODO: calculate expression in str, reflect result in equal button
-                    } */
-
-                    op.set_checked(false);
-                    self.elem_op = None;
-                }   self.elem_na = Some(inp);   false
+                if  nq.len() == 2 && self.elem_op != None { self.combine(); }   false
             }
 
-            Msg::Resize(n) => { self.dealer(n as usize);    true }
-
-            Msg::Restore => {
-                let coll = web_sys::window().unwrap().document().unwrap().get_element_by_id("num-operands").unwrap().children();
-                log::info!("{} chirldren", coll.length());
-                for i in 0..coll.length() {
-                    if let Ok(inp) = coll.item(i).unwrap().dyn_into::<HtmlInputElement>() {
-                        inp.set_max_length(3);  inp.set_size(3);
-                        inp.set_hidden(false);
-                    } else {
-                        let label = coll.item(i).unwrap().last_element_child().unwrap().dyn_into::<HtmlLabelElement>().unwrap();
-                        let inp = coll.item(i).unwrap().first_element_child().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-                        label.set_inner_text(inp.value().as_str());
-                        label.set_hidden(false);
-                    }
-
-                    // TODO: reset numbers editable
-                }   self.cnt = 1;   true
+            Msg::Resize(n) => {    self.clear_state();
+                if 0 < n { self.dealer(n as usize); } else {
+                           self.dealer(self.nums.len());
+                }   true
             }
+
+            Msg::Restore => { self.clear_state();   true }
         }
     }
 
@@ -273,12 +313,12 @@ fn root_route(routes: &RootRoute) -> Html {
             <style>{ r" body { text-align: center; } " }</style>
 
             <header>
-            <br/> <h1 class="text-4xl">{ "24 Game/Puzzle/Challenge" }</h1> <br/>
+            <br/> <h1 class="text-4xl"><a href="https://github.com/mhfan/inrust">{ "24 Game/Puzzle/Challenge" }</a></h1> <br/>
             </header>
 
             <Game24 />
 
-            //<footer> <br/><p>{ "Copyright © 2022, mhfan" }</p><br/> </footer>   // &copy;
+            //<footer> <br/><p>{ "Copyright © 2022, " }<a href="https://github.com/mhfan">{ "mhfan" }</a></p><br/> </footer>   // &copy;
         </> },
 
         RootRoute::Route => html!{ <Switch<Route> render={Switch::render(switch)} /> },
