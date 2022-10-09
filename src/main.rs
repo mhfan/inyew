@@ -44,7 +44,7 @@ impl Game24 {
         self.pos += n;  // TODO: solvable assurance
     }
 
-    fn combine(&mut self) {
+    fn form_expr(&mut self) {
         let nq = &mut self.elem_nq;
         let op = self.elem_op.as_ref().unwrap();
         let str = format!("({} {} {})", nq[0].value(), op.value(), nq[1].value());
@@ -116,7 +116,7 @@ impl Component for Game24 {
     }
 
     //#[function_component(Game24F)] fn game24() -> Html
-fn view(&self, ctx: &Context<Self>) -> Html {
+  fn view(&self, ctx: &Context<Self>) -> Html {
     let link = ctx.link();
     let ops_selected = link.callback(|e: Event| {
         let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
@@ -132,10 +132,10 @@ fn view(&self, ctx: &Context<Self>) -> Html {
     });
 
     let restore = link.callback(|_| Msg::Restore);
-    let refresh = link.callback(|_| Msg::Resize(0) );
+    let refresh = link.callback(|_| Msg::Resize(0));
     //web_sys::window().map(|window| window.location().reload());
 
-    // TODO: drag to exchange/replace
+    // XXX: drag to exchange/replace?
 
     let num_editable = Callback::from(|e: MouseEvent| {
         let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
@@ -158,7 +158,11 @@ fn view(&self, ctx: &Context<Self>) -> Html {
         Msg::Operands(inp)
     });
 
-    let num_class = "px-4 py-2 m-4 w-fit bg-transparent text-center text-2xl text-purple-600 font-semibold border border-purple-200 hover:text-white hover:bg-purple-600 hover:border-transparent focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2 shadow-xl invalid:border-red-500";
+    let num_class = "px-4 py-2 m-4 w-fit bg-transparent border border-purple-200
+        text-center text-2xl text-purple-600 font-semibold
+        hover:text-white hover:bg-purple-600 hover:border-transparent
+        focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2
+        shadow-xl invalid:border-red-500";
     let nums = self.nums.iter().enumerate().map(|(_i, pkn)| {
         let (num, sid) = ((pkn % 13) + 1, (pkn / 13)/* % 4 */);
 
@@ -168,29 +172,47 @@ fn view(&self, ctx: &Context<Self>) -> Html {
             2..=9 => num.to_string(), 10..=13 => court[(num - 10) as usize].to_owned(),
             _ => "?".to_owned() }, suits[sid as usize]);     //num  // TODO:
 
-        html!{
-            <input type="text" value={ num.to_string() } placeholder="?" inputmode="numeric" pattern=r"-?\d+" maxlength="3" size="3" draggable="true" readonly=true class={ classes!(num_class, "rounded-full") } data-bs-toggle="tooltip" title="Click to select/unselect\nDrag over to exchange\nDouble click to input new number"/>
-            // XXX: https://en.wikipedia.org/wiki/Playing_cards_in_Unicode
+        html!{  // XXX: https://en.wikipedia.org/wiki/Playing_cards_in_Unicode
+            <input type="text" value={ num.to_string() } readonly=true draggable="true"
+                placeholder="?" inputmode="numeric" pattern=r"-?\d+" maxlength="3" size="3"
+                class={ classes!(num_class, "rounded-full") } data-bs-toggle="tooltip"
+                title="Click to (un)select\nDouble click to input\nDrag over to exchange"/>
         }
     }).collect::<Html>();
 
     let ops = [ "+", "-", "×", "÷" ].into_iter().map(|op| html!{ <div class="m-4">
             <input type="radio" id={ op } value={ op } class="hidden peer"/>
-            <label for={ op } draggable="true" class="px-4 py-2 m-4 bg-indigo-600 text-white text-3xl font-bold hover:bg-indigo-500 peer-checked:outline-none peer-checked:ring-2 peer-checked:ring-indigo-500 peer-checked:ring-offset-2 peer-checked:bg-transparent rounded-md shadow-xl" data-bs-toggle="tooltip" title="Click to select/unselect\nDrag over to replace">{ op }</label>
+            <label for={ op } draggable="true" data-bs-toggle="tooltip"
+                title="Click to select/unselect\nDrag over to replace"
+                class="px-4 py-2 m-4 bg-indigo-600 text-white text-3xl font-bold
+                    hover:bg-indigo-500 peer-checked:outline-none
+                    peer-checked:ring-2 peer-checked:ring-indigo-500
+                    peer-checked:ring-offset-2 peer-checked:bg-transparent
+                    rounded-md shadow-xl">{ op }</label>
         </div>
     }).collect::<Html>();
 
-    let ctrl_class = "px-4 py-2 m-4 text-gray-900 font-bold bg-gradient-to-r from-lime-200 via-lime-400 to-lime-500 rounded-lg hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-lime-300 dark:focus:ring-lime-800 shadow-lg shadow-lime-500/50 dark:shadow-lg dark:shadow-lime-800/80";
+    let ctrl_class = "px-4 py-2 m-4 text-gray-900 font-bold bg-gradient-to-r
+        from-lime-200 via-lime-400 to-lime-500 rounded-lg hover:bg-gradient-to-br
+        focus:ring-4 focus:outline-none focus:ring-lime-300
+        dark:focus:ring-lime-800 shadow-lg shadow-lime-500/50
+        dark:shadow-lg dark:shadow-lime-800/80";
 
     let cnt_options = (4..=6).map(|n| html!{
-        <option value={ n.to_string() } selected={ n == self.nums.len() }>{ format!("{n} nums") }</option>
+        <option value={ n.to_string() } selected={ n == self.nums.len() }>{
+            format!("{n} nums") }</option>
     }).collect::<Html>();
 
-    // https://stackoverflow.com/questions/62554142/how-to-select-multiple-button-options-on-same-html-page-using-tailwind-css
     html!{ <main>
         //<div id="play-cards"/>    // TODO:
 
-        <div id="ops-group" onchange={ ops_selected } class="flex place-content-center">{ ops }</div>
+        <p class="hidden">{
+            "Click on a operator and two numbers to form expression, " }<br/>{
+            "repeat the process until all numbers are consumed, " }<br/>{
+            "the final expression will be determined automatically." }<br/><br/></p>
+
+        <div id="ops-group" onchange={ ops_selected }
+            class="flex place-content-center">{ ops }</div>
 
         <div id="expr-skel" class="flex place-content-center">
             <style>{ r"
@@ -199,28 +221,43 @@ fn view(&self, ctx: &Context<Self>) -> Html {
                 [contenteditable='true'].single-line  * { display: inline; white-space: nowrap; }
             " }</style>
 
-            <div id="num-operands" class="flex place-content-center" onfocus={ num_selected } ondblclick={ num_editable.clone() } onblur={ num_readonly.clone() }>{ nums }</div>
+            <div id="num-operands" class="flex place-content-center" onfocus={ num_selected }
+                ondblclick={ num_editable.clone() } onblur={ num_readonly.clone() }>{
+                nums }</div>
 
             // data-bs-toggle="collapse" data-bs-target="#all-solutions" aria-expanded="false" aria-controls="all-solutions"
-            <button class="py-2 px-4 m-4 text-white text-3xl font-bold rounded-md hover:outline-none hover:ring-2 focus:ring-indigo-500 active:ring-offset-2" data-bs-toggle="tooltip" title="Click to show solutions">{ "≠?" }</button>
-            <input type="text" value={ self.goal.to_string() } placeholder="??" inputmode="numeric" pattern=r"-?\d+" maxlength="4" size="4" readonly=true ondblclick={ num_editable } onblur={ num_readonly } class={ classes!(num_class, "rounded-md") } data-bs-toggle="tooltip" title="Double click to input new goal"/>
+            <button class="py-2 px-4 m-4 text-white text-3xl font-bold rounded-md
+                hover:outline-none hover:ring-2 focus:ring-indigo-500 active:ring-offset-2"
+                data-bs-toggle="tooltip" title="Click to show solutions">{ "≠?" }</button>
+            <input type="text" value={ self.goal.to_string() } readonly=true
+                ondblclick={ num_editable } onblur={ num_readonly }
+                placeholder="??" inputmode="numeric" pattern=r"-?\d+" maxlength="4" size="4"
+                class={ classes!(num_class, "rounded-md") }
+                data-bs-toggle="tooltip" title="Double click to input new goal"/>
         </div>
+
+        <p class="hidden peer-invalid:visible relative -top-[1rem] text-red-700 font-light">{
+             "Invalid integer number input, please correct it!" }</p> // invisible vs hidden
 
         <div id="ctrl-btns">
-            <select class={ classes!(ctrl_class) } onchange={ cnt_changed } data-bs-toogle="tooltip" title="Click to select numbers count">{ cnt_options }</select>
-            <input type="reset" value={ "Restore" } onclick={ restore } class={ classes!(ctrl_class) } data-bs-toogle="tooltip" title="Click to break down selected compound expression"/> //{ "Restore" } </button>
-            <button class={ classes!(ctrl_class) } onclick={ refresh } data-bs-toogle="tooltip" title="Click to refresh new round game">{ "Refresh" }</button>
+            <select class={ classes!(ctrl_class) } onchange={ cnt_changed }
+                data-bs-toogle="tooltip" title="Click to select numbers count">{
+                cnt_options }</select>
+            <input type="reset" value={ "Restore" } class={ classes!(ctrl_class) }
+                onclick={ restore } data-bs-toogle="tooltip" title="Click to initial"/>
+            <button class={ classes!(ctrl_class) } onclick={ refresh }
+                data-bs-toogle="tooltip" title="Click to refresh new">{ "Refresh" }</button>
         </div>
 
-        <div id="all-solutions" class="collapse block mt-4 max-h-24 overflow-y-auto text-white text-2xl">{ "All solutions" }
-        </div>
+        <div id="all-solutions" class="collapse block mt-4 max-h-24
+            overflow-y-auto text-white text-2xl">{ "Show off all solutions" }</div>
     </main> }
-}
+  }
 
     fn update  (&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::Operator(inp) => { self.elem_op = Some(inp);
-                if  self.elem_nq.len() == 2 { self.combine(); }     false
+                if  self.elem_nq.len() == 2 { self.form_expr(); }   false
             }
 
             Msg::Operands(inp) => {
@@ -228,7 +265,7 @@ fn view(&self, ctx: &Context<Self>) -> Html {
                 let mut n = nq.len();
                 if  nq.iter().enumerate().any(|(i, el)| {
                     let same = el.is_same_node(Some(inp.as_ref()));
-                    if same { n = i; }  same }) {
+                    if  same { n = i; }     same }) {
                     Self::toggle_hl(&inp, false);
                     if n < nq.len() { nq.remove(n); }
                 } else {
@@ -236,11 +273,8 @@ fn view(&self, ctx: &Context<Self>) -> Html {
                     nq.push_back(inp);
                 }
 
-                if 2 < nq.len() {
-                    Self::toggle_hl(&nq.pop_front().unwrap(), false);
-                }
-
-                if  nq.len() == 2 && self.elem_op != None { self.combine(); }   false
+                if 2 < nq.len() { Self::toggle_hl(&nq.pop_front().unwrap(), false); }
+                if  nq.len() == 2 && self.elem_op != None { self.form_expr(); }     false
             }
 
             Msg::Resize(n) => {    self.clear_state();
@@ -267,13 +301,15 @@ fn root_route(routes: &RootRoute) -> Html {
             //margin: 0 auto;   //class: justify-center;    // XXX: not working
             <style>{ r" body { text-align: center; } " }</style>
 
-            <header>
-            <br/> <h1 class="text-4xl"><a href="https://github.com/mhfan/inrust">{ "24 Game/Puzzle/Challenge" }</a></h1> <br/>
+            <header><br/>
+                <h1 class="text-4xl"><a href="https://github.com/mhfan/inrust">{
+                    "24 Game/Puzzle/Challenge" }</a></h1><br/>
             </header>
 
             <Game24 />
 
-            //<footer> <br/><p>{ "Copyright © 2022, " }<a href="https://github.com/mhfan">{ "mhfan" }</a></p><br/> </footer>   // &copy;
+            <footer><br/><p>{ "Copyright © 2022, " }    // &copy;
+                <a href="https://github.com/mhfan">{ "mhfan" }</a></p><br/></footer>
         </> },
 
         RootRoute::Route => html!{ <Switch<Route> render={Switch::render(switch)} /> },
