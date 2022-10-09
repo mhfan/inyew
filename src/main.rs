@@ -15,8 +15,8 @@ use yew_router::prelude::*;
     #[at("/inyew/404")] #[not_found] NotFound,
 }
 
+use wasm_bindgen::JsCast;
 use web_sys::HtmlInputElement;
-use {wasm_bindgen::JsCast, js_sys::Function};
 use std::collections::VecDeque;
 
 struct Game24 {
@@ -29,7 +29,6 @@ struct Game24 {
 
     elem_op: Option<HtmlInputElement>,
     elem_nq: VecDeque<HtmlInputElement>,
-    dblclick: Option<Function>,
 }
 
 impl Game24 {
@@ -53,13 +52,7 @@ impl Game24 {
         nq[1].set_size (str.len() as u32);  nq[1].set_max_length(str.len() as i32);
         nq[1].set_value(str.as_str());      nq[0].set_hidden(true);
 
-        self.cnt += 1;  if self.cnt == 2 {
-            let parent = nq[0].parent_element().unwrap()
-                    .dyn_into::<web_sys::HtmlElement>().unwrap();
-            self.dblclick = parent.ondblclick();
-            if self.dblclick.is_some() { parent.set_ondblclick(None); }
-            else { log::warn!("dblclick is none"); }   // FIXME:
-        } else if self.cnt == self.nums.len() {
+        self.cnt += 1;  if self.cnt == self.nums.len() {
             Self::toggle_hl(&nq[1], false);  nq[1].blur().unwrap();
             // TODO: calculate expression in str, reflect result in equal button
         }
@@ -72,13 +65,8 @@ impl Game24 {
         self.elem_nq.iter().for_each(|el| Self::toggle_hl(el, false));
         self.elem_nq.clear();   self.elem_op = None;    self.cnt = 1;
 
-        let parent = web_sys::window().unwrap().document().unwrap()
-            .get_element_by_id("num-operands").unwrap();
-        let coll = parent.children();
-        if self.dblclick.is_some() {
-            parent.dyn_into::<web_sys::HtmlElement>().unwrap()
-                .set_ondblclick(self.dblclick.as_ref());
-        }
+        let coll = web_sys::window().unwrap().document().unwrap()
+            .get_element_by_id("num-operands").unwrap().children();
 
         for i in 0..coll.length() {
             let inp = coll.item(i).unwrap()
@@ -100,6 +88,7 @@ impl Game24 {
 enum Msg {
     Operator(HtmlInputElement),
     Operands(HtmlInputElement),
+    Editable(HtmlInputElement),
     Resize(u8),
     Restore,
 }
@@ -111,25 +100,21 @@ impl Component for Game24 {
     fn create(_ctx: &Context<Self>) -> Self {
         let mut game = Self { goal: 24, nums: vec![],
             deck: (0..52).collect::<Vec<_>>(), pos: 0, cnt: 1,
-            elem_op: None, elem_nq: VecDeque::new(), dblclick: None,
+            elem_op: None, elem_nq: VecDeque::new(),
         };  game.dealer(4);     game
     }
 
     //#[function_component(Game24F)] fn game24() -> Html
   fn view(&self, ctx: &Context<Self>) -> Html {
     let link = ctx.link();
-    let ops_selected = link.callback(|e: Event| {
-        let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-        log::info!("{}", inp.value());  // require value='xxx' in <input>, default is 'on'
-        Msg::Operator(inp)
-    });
 
-    let cnt_changed = link.callback(|e: Event| {
-        let sel = e.target().unwrap()
-            .dyn_into::<web_sys::HtmlSelectElement>().unwrap();
-        log::info!("{}", sel.inner_text());     //sel.value()
-        Msg::Resize(sel.value().parse::<u8>().unwrap())
-    });
+    let ops_selected = link.callback(|e: Event|
+        Msg::Operator(e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap()));
+        // require value='xxx' in <input>, default is 'on'
+
+    let cnt_changed = link.callback(|e: Event|
+        Msg::Resize(e.target().unwrap()
+            .dyn_into::<web_sys::HtmlSelectElement>().unwrap().value().parse::<u8>().unwrap()));
 
     let restore = link.callback(|_| Msg::Restore);
     let refresh = link.callback(|_| Msg::Resize(0));
@@ -137,26 +122,19 @@ impl Component for Game24 {
 
     // XXX: drag to exchange/replace?
 
-    let num_editable = Callback::from(|e: MouseEvent| {
-        let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-        //inp.set_selection_range(end, inp.value().len() as u32).unwrap();
-        inp.remove_attribute("readonly").expect("");
-    });
+    let num_editable = link.callback(|e: MouseEvent|
+        Msg::Editable(e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap()));
 
     let num_readonly = Callback::from(|e: FocusEvent| {
         let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
         if  inp.check_validity() {
             inp.set_attribute("readonly", "").unwrap();
-        } else {
-            inp.focus().unwrap();  inp.select();
-        }   log::info!("input {}", inp.value());
+        } else { inp.focus().unwrap();  inp.select(); }
+        log::info!("input {}", inp.value());
     });
 
-    let num_selected = link.callback(|e: FocusEvent| {
-        let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-        log::info!("{}", inp.value());
-        Msg::Operands(inp)
-    });
+    let num_selected = link.callback(|e: FocusEvent|
+        Msg::Operands(e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap()));
 
     let num_class = "px-4 py-2 m-4 w-fit bg-transparent border border-purple-200
         text-center text-2xl text-purple-600 font-semibold
@@ -203,8 +181,7 @@ impl Component for Game24 {
             format!("{n} nums") }</option>
     }).collect::<Html>();
 
-    html!{ <main>
-        //<div id="play-cards"/>    // TODO:
+    html!{ <main>   //<div id="play-cards"/>    // TODO:
 
         <p class="hidden">{
             "Click on a operator and two numbers to form expression, " }<br/>{
@@ -275,6 +252,12 @@ impl Component for Game24 {
 
                 if 2 < nq.len() { Self::toggle_hl(&nq.pop_front().unwrap(), false); }
                 if  nq.len() == 2 && self.elem_op != None { self.form_expr(); }     false
+            }
+
+            Msg::Editable(inp) => {
+                //inp.set_selection_range(end, inp.value().len() as u32).unwrap();
+                if self.cnt < 2 { inp.remove_attribute("readonly").expect(""); }
+                false
             }
 
             Msg::Resize(n) => {    self.clear_state();
