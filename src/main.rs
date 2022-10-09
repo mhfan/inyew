@@ -15,9 +15,10 @@ use yew_router::prelude::*;
     #[at("/inyew/404")] #[not_found] NotFound,
 }
 
-use wasm_bindgen::JsCast;
-use web_sys::HtmlInputElement;
 use std::collections::VecDeque;
+use web_sys::HtmlInputElement;
+use wasm_bindgen::JsCast;
+//use inrust::calc24::*;
 
 struct Game24 {
     goal: i32,
@@ -26,6 +27,7 @@ struct Game24 {
     deck: Vec<i32>,
     pos: usize,
     cnt: usize,
+    //expr: Expr,
 
     elem_op: Option<HtmlInputElement>,
     elem_nq: VecDeque<HtmlInputElement>,
@@ -52,13 +54,14 @@ impl Game24 {
         nq[1].set_size (str.len() as u32);  nq[1].set_max_length(str.len() as i32);
         nq[1].set_value(str.as_str());      nq[0].set_hidden(true);
 
+        //let ea = Expr::from(Rational::from(nq[0].value().parse::<i32>().unwrap()));
+        //let eb = Expr::from(Rational::from(nq[1].value().parse::<i32>().unwrap()));
         self.cnt += 1;  if self.cnt == self.nums.len() {
-            Self::toggle_hl(&nq[1], false);  nq[1].blur().unwrap();
             // TODO: calculate expression in str, reflect result in equal button
         }
 
-        op.set_checked(false);  self.elem_op = None;
-        Self::toggle_hl(&nq.pop_front().unwrap(), false);
+        self.elem_nq.iter().for_each(|el| Self::toggle_hl(el, false));
+        self.elem_nq.clear();   op.set_checked(false);  self.elem_op = None;
     }
 
     fn clear_state(&mut self) { log::info!("clear state");
@@ -100,6 +103,7 @@ impl Component for Game24 {
     fn create(_ctx: &Context<Self>) -> Self {
         let mut game = Self { goal: 24, nums: vec![],
             deck: (0..52).collect::<Vec<_>>(), pos: 0, cnt: 1,
+            //expr: Default::default(),
             elem_op: None, elem_nq: VecDeque::new(),
         };  game.dealer(4);     game
     }
@@ -217,11 +221,11 @@ impl Component for Game24 {
              "Invalid integer number input, please correct it!" }</p> // invisible vs hidden
 
         <div id="ctrl-btns">
+            <input type="reset" value={ "Restore" } class={ classes!(ctrl_class) }
+                onclick={ restore } data-bs-toogle="tooltip" title="Click to initial"/>
             <select class={ classes!(ctrl_class) } onchange={ cnt_changed }
                 data-bs-toogle="tooltip" title="Click to select numbers count">{
                 cnt_options }</select>
-            <input type="reset" value={ "Restore" } class={ classes!(ctrl_class) }
-                onclick={ restore } data-bs-toogle="tooltip" title="Click to initial"/>
             <button class={ classes!(ctrl_class) } onclick={ refresh }
                 data-bs-toogle="tooltip" title="Click to refresh new">{ "Refresh" }</button>
         </div>
