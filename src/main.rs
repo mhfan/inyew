@@ -15,7 +15,7 @@ use yew_router::prelude::*;
     #[at("/inyew/404")] #[not_found] NotFound,
 }
 
-use web_sys::{HtmlInputElement, HtmlLabelElement};
+use web_sys::HtmlInputElement;
 use {wasm_bindgen::JsCast, js_sys::Function};
 use std::collections::VecDeque;
 
@@ -50,26 +50,15 @@ impl Game24 {
         let str = format!("({} {} {})", nq[0].value(), op.value(), nq[1].value());
         log::info!("{str}");
 
-        if let Some(lbl) = nq[1].next_element_sibling()
-            .and_then(|el| el.dyn_into::<HtmlLabelElement>().ok()) {
-            lbl.set_inner_text(str.as_str());
-
-            let lbl = nq[0].next_element_sibling().unwrap()
-                .dyn_into::<HtmlLabelElement>().unwrap();
-            lbl.set_hidden(true);
-        } else {    nq[0].set_hidden(true);
-
-            nq[1].set_max_length(str.len() as i32);
-            nq[1].set_size (str.len() as u32);
-            nq[1].set_value(str.as_str());
-        }
+        nq[1].set_size (str.len() as u32);  nq[1].set_max_length(str.len() as i32);
+        nq[1].set_value(str.as_str());      nq[0].set_hidden(true);
 
         self.cnt += 1;  if self.cnt == 2 {
             let parent = nq[0].parent_element().unwrap()
                     .dyn_into::<web_sys::HtmlElement>().unwrap();
             self.dblclick = parent.ondblclick();
             if self.dblclick.is_some() { parent.set_ondblclick(None); }
-            else { log::info!("dblclick is none"); }   // FIXME:
+            else { log::warn!("dblclick is none"); }   // FIXME:
         } else if self.cnt == self.nums.len() {
             Self::toggle_hl(&nq[1], false);  nq[1].blur().unwrap();
             // TODO: calculate expression in str, reflect result in equal button
@@ -92,16 +81,10 @@ impl Game24 {
         }
 
         for i in 0..coll.length() {
-            if let Ok(inp) = coll.item(i).unwrap()
-                .dyn_into::<HtmlInputElement>() {
-                inp.set_max_length(3);  inp.set_size(3);
-                inp.set_hidden(false);
-            } else {
-                let lbl = coll.item(i).unwrap().last_element_child().unwrap().dyn_into::<HtmlLabelElement>().unwrap();
-                let inp = coll.item(i).unwrap().first_element_child().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-                lbl.set_inner_text(inp.value().as_str());
-                lbl.set_hidden(false);
-            }
+            let inp = coll.item(i).unwrap()
+                .dyn_into::<HtmlInputElement>().unwrap();
+            inp.set_max_length(3);  inp.set_size(3);
+            inp.set_hidden(false);
         }
     }
 
@@ -155,42 +138,18 @@ fn view(&self, ctx: &Context<Self>) -> Html {
     // TODO: drag to exchange/replace
 
     let num_editable = Callback::from(|e: MouseEvent| {
-        if let Some(lbl) = e.target().and_then(|t|
-            t.dyn_into::<HtmlLabelElement>().ok()) {
-            lbl.set_content_editable("true");   lbl.focus().unwrap();
-            web_sys::window().unwrap().get_selection().unwrap().unwrap()
-                .select_all_children(lbl.as_ref()).expect("");
-            //lbl.dispatch_event(e.as_ref()).unwrap();    // XXX:
-        } else if let Some(inp) = e.target().and_then(|t|
-            t.dyn_into::<HtmlInputElement>().ok()) {
-            //inp.set_selection_range(end, inp.value().len() as u32).unwrap();
-            inp.remove_attribute("readonly").expect("");
-        }
+        let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+        //inp.set_selection_range(end, inp.value().len() as u32).unwrap();
+        inp.remove_attribute("readonly").expect("");
     });
 
     let num_readonly = Callback::from(|e: FocusEvent| {
-        if let Some(lbl) = e.target().and_then(|t|
-            t.dyn_into::<HtmlLabelElement>().ok()) {
-            let inp = lbl.previous_element_sibling().unwrap()
-                .dyn_into::<HtmlInputElement>().unwrap();
-            let str = lbl.inner_text();
-            if  str.parse::<i32>().is_ok() {
-                lbl.set_content_editable("false");
-                inp.set_value(str.as_str());
-            } else {
-                //inp.dispatch_event(&Event::new("InvalidEvent").unwrap()).unwrap();   // XXX:
-                web_sys::window().unwrap().get_selection().unwrap().unwrap()
-                    .select_all_children(lbl.as_ref()).unwrap();
-                lbl.focus().unwrap();
-            }   log::info!("input {}", str);
-        } else if let Some(inp) = e.target().and_then(|t|
-            t.dyn_into::<HtmlInputElement>().ok()) {
-            if  inp.check_validity() {
-                inp.set_attribute("readonly", "").unwrap();
-            } else {
-                inp.focus().unwrap();  inp.select();
-            }   log::info!("input {}", inp.value());
-        }
+        let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+        if  inp.check_validity() {
+            inp.set_attribute("readonly", "").unwrap();
+        } else {
+            inp.focus().unwrap();  inp.select();
+        }   log::info!("input {}", inp.value());
     });
 
     let num_selected = link.callback(|e: FocusEvent| {
@@ -209,13 +168,9 @@ fn view(&self, ctx: &Context<Self>) -> Html {
             2..=9 => num.to_string(), 10..=13 => court[(num - 10) as usize].to_owned(),
             _ => "?".to_owned() }, suits[sid as usize]);     //num  // TODO:
 
-        html!{ //<div>
-            //<input type="checkbox" id={ format!("num{_i}") } value={ num.to_string() } class="hidden peer"/>
-            //<label for={ format!("num{i}") } draggable="true" class="inline-block single-line px-4 py-2 m-4 min-w-[4rem] bg-transparent text-center text-2xl text-purple-600 font-semibold border border-purple-200 rounded-full hover:text-white hover:bg-purple-600 hover:border-transparent peer-checked:outline-none peer-checked:ring-2 peer-checked:ring-purple-600 peer-checked:ring-offset-2 shadow-xl peer-invalid:border-red-500" data-bs-toggle="tooltip" title="Click to select/unselect\nDrag over to exchange\nDouble click to input new number">{ num }</label>
-            // XXX: num_selected: onchange vs onfocus
+        html!{
             <input type="text" value={ num.to_string() } placeholder="?" inputmode="numeric" pattern=r"-?\d+" maxlength="3" size="3" draggable="true" readonly=true class={ classes!(num_class, "rounded-full") } data-bs-toggle="tooltip" title="Click to select/unselect\nDrag over to exchange\nDouble click to input new number"/>
             // XXX: https://en.wikipedia.org/wiki/Playing_cards_in_Unicode
-        //</div>
         }
     }).collect::<Html>();
 
