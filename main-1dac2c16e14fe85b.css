@@ -1450,8 +1450,9 @@ video {
   border-color: rgb(233 213 255 / var(--tw-border-opacity));
 }
 
-.bg-transparent {
-  background-color: transparent;
+.bg-stone-200 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(231 229 228 / var(--tw-bg-opacity));
 }
 
 .bg-indigo-600 {
@@ -1576,6 +1577,12 @@ video {
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
 }
 
+.ring {
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+
 .ring-lime-400 {
   --tw-ring-opacity: 1;
   --tw-ring-color: rgb(163 230 53 / var(--tw-ring-opacity));
@@ -1596,9 +1603,21 @@ video {
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
 }
 
+.invalid\:border-2:invalid {
+  border-width: 2px;
+}
+
 .invalid\:border-red-500:invalid {
   --tw-border-opacity: 1;
   border-color: rgb(239 68 68 / var(--tw-border-opacity));
+}
+
+.read-only\:bg-transparent:-moz-read-only {
+  background-color: transparent;
+}
+
+.read-only\:bg-transparent:read-only {
+  background-color: transparent;
 }
 
 .hover\:border-transparent:hover {
@@ -1610,9 +1629,9 @@ video {
   background-color: rgb(147 51 234 / var(--tw-bg-opacity));
 }
 
-.hover\:bg-indigo-500:hover {
+.hover\:bg-indigo-400:hover {
   --tw-bg-opacity: 1;
-  background-color: rgb(99 102 241 / var(--tw-bg-opacity));
+  background-color: rgb(129 140 248 / var(--tw-bg-opacity));
 }
 
 .hover\:bg-gradient-to-br:hover {
@@ -1633,6 +1652,11 @@ video {
   --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
   --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+
+.hover\:ring-indigo-400:hover {
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(129 140 248 / var(--tw-ring-opacity));
 }
 
 .focus\:outline-none:focus {
