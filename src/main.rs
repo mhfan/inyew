@@ -58,7 +58,7 @@ impl Game24 {
         let str = format!("({} {} {})", nq[0].value(), op.value(), nq[1].value());
 
         nq[1].set_size (str.len() as u32);  nq[1].set_max_length(str.len() as i32);
-        nq[1].set_value(str.as_str());      nq[1].blur().unwrap();  nq[0].set_hidden(true);
+        nq[1].set_value(&str);  nq[1].blur().unwrap();  nq[0].set_hidden(true);
 
         self.cnt += 1;  if self.cnt == self.nums.len() {
             let str = str.chars().map(|ch|
@@ -79,7 +79,7 @@ impl Game24 {
         self.elem_nq.clear();   op.set_checked(false);  self.elem_op = None;
     }
 
-    fn clear_state(&mut self) { //log::info!("clear state");
+    fn clear_state(&mut self) {     //log::info!("clear state");
         self.elem_nq.iter().for_each(|el| Self::toggle_hl(el, false));
         self.elem_nq.clear();   self.elem_op = None;    self.cnt = 1;
 
@@ -89,23 +89,29 @@ impl Game24 {
             "text-red-500", "ring-2").unwrap();
         elem_eq.set_inner_text("≠?");
 
+        self.sol_div.cast::<HtmlElement>().unwrap().set_inner_text("");
+
         //let coll = web_sys::window().unwrap().document().unwrap()
         //    .get_element_by_id("num-operands").unwrap().children();
         let coll = self.num_div.cast::<HtmlElement>().unwrap().children();
 
+        //let elem = elem.next_element_sibling().unwrap()   // XXX:
+        //    .next_element_sibling().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+        //if  elem.read_only() { elem.set_read_only(true); elem.blur().unwrap(); }
+
         for i in 0..coll.length() {
             let inp = coll.item(i).unwrap()
                 .dyn_into::<HtmlInputElement>().unwrap();
-            inp.set_max_length(3);  inp.set_size(3);
-            inp.set_hidden(false);
+            //if !inp.read_only() {   inp.blur().unwrap(); }
+            inp.set_max_length(3);  inp.set_size(3);    inp.set_hidden(false);
         }
     }
 
     fn toggle_hl(el: &HtmlInputElement, hl: bool) {
         if hl {
-            el.class_list().add_2("ring-2", "ring-purple-600").unwrap();
+            el.class_list().add_2("ring", "ring-purple-600").unwrap();
         } else {    // XXX:
-            el.class_list().remove_2("ring-2", "ring-purple-600").unwrap();
+            el.class_list().remove_2("ring", "ring-purple-600").unwrap();
         }
     }
 }
@@ -156,26 +162,30 @@ impl Component for Game24 {
 
     let num_readonly = Callback::from(|e: FocusEvent| {
         let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-        if !inp.read_only() { inp.set_attribute("readonly", "").unwrap(); }
+        if  inp.read_only() { return }
+        if  inp.check_validity() { inp.set_read_only(true); } else {
+            inp.focus().unwrap();  inp.select();
+        }
     });
 
     let num_changed = link.batch_callback(|e: Event| {
         let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-        if  inp.check_validity() {  //log::info!("input {}", inp.value());
-            inp.set_attribute("readonly", "").unwrap();
+        let str = inp.value();  log::info!("input {}", str);
+        if !str.is_empty() && inp.check_validity() {    inp.set_read_only(true);
             Some(Msg::Update(inp.get_attribute("id").unwrap().get(1..).unwrap()
-                .parse::<u8>().unwrap(), inp.value().parse::<i32>().unwrap()))
+                .parse::<u8>().unwrap(), str.parse::<i32>().unwrap()))
         } else { inp.focus().unwrap();   inp.select();  None }
     });
 
     let num_checked = link.callback(|e: FocusEvent|
         Msg::Operands(e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap()));
 
-    let num_class = "px-4 py-2 m-4 w-fit bg-transparent border border-purple-200
+    let num_class = "px-4 py-2 m-4 w-fit
+        read-only:bg-transparent bg-stone-200 border border-purple-200
         text-center text-2xl text-purple-600 font-semibold
         hover:text-white hover:bg-purple-600 hover:border-transparent
         focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2
-        shadow-xl invalid:border-red-500";
+        shadow-xl invalid:border-red-500 invalid:border-2";
     let nums = self.nums.iter().enumerate().map(|(idx, num)| {
         /*let (num, sid) = ((num % 13) + 1, (num / 13)/* % 4 */);
 
@@ -198,9 +208,9 @@ impl Component for Game24 {
         <div class="m-4 inline-block">
             <input type="radio" id={ op } value={ op } class="hidden peer"/>
             <label for={ op } draggable="true" data-bs-toggle="tooltip"
-                title="Click to (un)check\nDrag over to replace"
+                title="Click to (un)check\nDrag over to replace/exchange"
                 class="px-4 py-2 m-4 bg-indigo-600 text-white text-3xl font-bold
-                hover:bg-indigo-500 peer-checked:outline-none peer-checked:ring-2
+                hover:bg-indigo-400 peer-checked:outline-none peer-checked:ring-2
                 peer-checked:ring-indigo-500 peer-checked:ring-offset-2
                 peer-checked:bg-transparent rounded-md shadow-xl">{ op }</label>
         </div>
@@ -234,13 +244,14 @@ impl Component for Game24 {
             " }</style>*/
 
             <div id="num-operands" class="inline-block" ref={ self.num_div.clone() }
-                onfocus={ num_checked } ondblclick={ num_editable.clone() }
-                onblur={ num_readonly.clone() } onchange={ num_changed.clone() }>{ nums }</div>
+                ondblclick={ num_editable.clone() } onchange={ num_changed.clone() }
+                onfocus={ num_checked } onblur={ num_readonly.clone() }>{ nums }</div>
 
             // data-bs-toggle="collapse" data-bs-target="#all-solutions" aria-expanded="false" aria-controls="all-solutions"
             <button onclick={ resolve } ref={ self.elem_eq.clone() } //text-white
                 class="py-2 px-4 m-4 text-3xl font-bold rounded-md
-                hover:outline-none hover:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                hover:outline-none hover:ring-2 hover:ring-indigo-400
+                focus:ring-indigo-500 focus:ring-offset-2"
                 data-bs-toggle="tooltip" title="Click to get solutions">{ "≠?" }</button>
             <input type="text" value={ self.goal.to_string() }
                 id={ format!("G{}", self.nums.len()) } readonly=true
@@ -255,7 +266,7 @@ impl Component for Game24 {
 
         <div id="ctrl-btns">
             <input type="reset" value={ "Restore" } class={ classes!(ctrl_class) }
-                onclick={ restore } data-bs-toogle="tooltip" title="Click to initial"/>
+                onclick={ restore } data-bs-toogle="tooltip" title="Click reset to initial"/>
             <select class={ classes!(ctrl_class) } onchange={ cnt_changed }
                 data-bs-toogle="tooltip" title="Click to select numbers count">{
                 cnt_options }</select>
@@ -294,8 +305,10 @@ impl Component for Game24 {
 
             Msg::Editable(inp) => {
                 //inp.set_selection_range(end, inp.value().len() as u32).unwrap();
-                if self.cnt < 2 { inp.remove_attribute("readonly").expect(""); }
-                false
+                if self.cnt < 2 { inp.set_read_only(false); }
+                if inp.get_attribute("id").unwrap().starts_with('N') {
+                    self.update(_ctx, Msg::Operands(inp));  // don't check on editing
+                }   false
             }
 
             Msg::Resize(n) => {    self.clear_state();
