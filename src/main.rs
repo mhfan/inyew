@@ -65,12 +65,12 @@ impl Game24 {
                 match ch { '×' => '*', '÷' => '/', _ => ch }).collect::<String>();
             let elem_eq = self.elem_eq.cast::<HtmlElement>().unwrap();
             if (mexe::eval(str).unwrap() + 0.1) as i32 == self.goal {
-                elem_eq.class_list().add_3("text-lime-500",
-                    "ring-2", "ring-lime-400").unwrap();
+                elem_eq.class_list().add_3("ring-2", "text-lime-500",
+                    "ring-lime-400").unwrap();
                 elem_eq.set_inner_text("=");
             } else {    // XXX:
-                elem_eq.class_list().add_3("text-red-500",
-                    "ring-2", "ring-red-400").unwrap();
+                elem_eq.class_list().add_3("ring-2", "text-red-500",
+                    "ring-red-400").unwrap();
                 elem_eq.set_inner_text("≠");
             }
         }
@@ -84,9 +84,9 @@ impl Game24 {
         self.elem_nq.clear();   self.elem_op = None;    self.cnt = 1;
 
         let elem_eq = self.elem_eq.cast::<HtmlElement>().unwrap();
-        elem_eq.class_list().remove_5("text-lime-500",
-            "ring-red-400", "ring-lime-400",    // XXX: better ideas?
-            "text-red-500", "ring-2").unwrap();
+        elem_eq.class_list().remove_5("ring-red-400",   // XXX: better ideas?
+            "text-red-500", "text-lime-500",
+            "ring-lime-400", "ring-2").unwrap();
         elem_eq.set_inner_text("≠?");
 
         self.sol_div.cast::<HtmlElement>().unwrap().set_inner_text("");
@@ -99,7 +99,7 @@ impl Game24 {
         //    .next_element_sibling().unwrap().dyn_into::<HtmlInputElement>().unwrap();
         //if  elem.read_only() { elem.set_read_only(true); elem.blur().unwrap(); }
 
-        for i in 0..coll.length() {
+        for i in   0..coll.length() {
             let inp = coll.item(i).unwrap()
                 .dyn_into::<HtmlInputElement>().unwrap();
             //if !inp.read_only() {   inp.blur().unwrap(); }
@@ -328,14 +328,17 @@ impl Component for Game24 {
                 let sol = calc24_coll(&self.goal.into(),
                     &self.nums.iter().map(|&n|
                     Rational::from(n)).collect::<Vec<_>>(), DynProg);
-                let sol = sol.into_iter().map(|str| {
+                let cnt = sol.len();
+
+                let mut sol = sol.into_iter().map(|str| {
                     let mut str = str.chars().map(|ch|
                         match ch { '*' => '×', '/' => '÷', _ => ch }).collect::<String>();
                     str.push_str("<br/>");  str
-                }).collect::<Vec<String>>();
+                }).collect::<Vec<String>>().concat();
 
-                self.sol_div.cast::<HtmlElement>().unwrap()
-                    .set_inner_html(&sol.concat());     false
+                if 10 < cnt { sol.push_str(&format!(
+                    "<br/>{cnt} solutions in total<br/>")); }
+                self.sol_div.cast::<HtmlElement>().unwrap().set_inner_html(&sol);   false
             }
         }
     }
@@ -352,12 +355,11 @@ fn root_route(routes: &RootRoute) -> Html {
     match routes {
         RootRoute::Home  => html!{ <>
             //margin: 0 auto;   //class: justify-center;    // XXX: not working
-            <style>{ r" body { text-align: center; min-height: 100vh;
-                display: flex; flex-direction: column; } " }</style>
+            <style>{ r"body { text-align: center; height: 100vh; }" }</style>
+                    // display: flex; flex-direction: column;
 
-            <header><br/>
-                <h1 class="text-4xl"><a href="https://github.com/mhfan/inrust">{
-                    "24 Game/Puzzle/Challenge" }</a></h1><br/>
+            <header><br/><h1 class="text-4xl"><a href="https://github.com/mhfan/inrust">{
+                "24 Game/Puzzle/Challenge" }</a></h1><br/>
             </header>
 
             <Game24 />
