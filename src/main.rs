@@ -16,9 +16,9 @@ use yew_router::prelude::*;
 }
 
 use std::collections::VecDeque;
-use web_sys::HtmlInputElement;
+use web_sys::{HtmlElement, HtmlInputElement};
 use wasm_bindgen::JsCast;
-//use inrust::calc24::*;
+use inrust::calc24::*;
 
 struct Game24 {
     goal: i32,
@@ -27,9 +27,12 @@ struct Game24 {
     deck: Vec<i32>,
     pos: usize,
     cnt: usize,
-    //expr: Expr,
 
-    elem_op: Option<HtmlInputElement>,
+    sol_div: NodeRef,
+    num_div: NodeRef,
+    elem_eq: NodeRef,
+
+    elem_op:   Option<HtmlInputElement>,
     elem_nq: VecDeque<HtmlInputElement>,
 }
 
@@ -38,38 +41,57 @@ impl Game24 {
         use rand::{thread_rng, seq::SliceRandom};
         let mut rng = thread_rng();
 
-        if self.deck.len() < self.pos + n { self.pos = 0; }
-        if self.pos == 0 { self.deck.shuffle(&mut rng); }
+        loop {
+            if self.pos == 0 { self.deck.shuffle(&mut rng); }
+            self.nums = self.deck[self.pos..].partial_shuffle(&mut rng,
+                n).0.iter().map(|n| (n % 13) + 1).collect::<Vec<_>>();
+            self.pos += n;  if self.deck.len() < self.pos + n { self.pos = 0; }
 
-        self.nums = self.deck[self.pos..].partial_shuffle(&mut rng, n).0.to_owned();
-        self.pos += n;  // TODO: solvable assurance
+            if !calc24_first(&self.goal.into(), &self.nums.iter().map(|&n|
+                Rational::from(n)).collect::<Vec<_>>(), DynProg).is_empty() { break }
+        }
     }
 
     fn form_expr(&mut self) {
         let nq = &mut self.elem_nq;
         let op = self.elem_op.as_ref().unwrap();
         let str = format!("({} {} {})", nq[0].value(), op.value(), nq[1].value());
-        log::info!("{str}");
 
         nq[1].set_size (str.len() as u32);  nq[1].set_max_length(str.len() as i32);
-        nq[1].set_value(str.as_str());      nq[0].set_hidden(true);
+        nq[1].set_value(str.as_str());      nq[1].blur().unwrap();  nq[0].set_hidden(true);
 
-        //let ea = Expr::from(Rational::from(nq[0].value().parse::<i32>().unwrap()));
-        //let eb = Expr::from(Rational::from(nq[1].value().parse::<i32>().unwrap()));
         self.cnt += 1;  if self.cnt == self.nums.len() {
-            // TODO: calculate expression in str, reflect result in equal button
+            let str = str.chars().map(|ch|
+                match ch { '×' => '*', '÷' => '/', _ => ch }).collect::<String>();
+            let elem_eq = self.elem_eq.cast::<HtmlElement>().unwrap();
+            if (mexe::eval(str).unwrap() + 0.1) as i32 == self.goal {
+                elem_eq.class_list().add_3("text-lime-500",
+                    "ring-2", "ring-lime-400").unwrap();
+                elem_eq.set_inner_text("=");
+            } else {    // XXX:
+                elem_eq.class_list().add_3("text-red-500",
+                    "ring-2", "ring-red-400").unwrap();
+                elem_eq.set_inner_text("≠");
+            }
         }
 
         self.elem_nq.iter().for_each(|el| Self::toggle_hl(el, false));
         self.elem_nq.clear();   op.set_checked(false);  self.elem_op = None;
     }
 
-    fn clear_state(&mut self) { log::info!("clear state");
+    fn clear_state(&mut self) { //log::info!("clear state");
         self.elem_nq.iter().for_each(|el| Self::toggle_hl(el, false));
         self.elem_nq.clear();   self.elem_op = None;    self.cnt = 1;
 
-        let coll = web_sys::window().unwrap().document().unwrap()
-            .get_element_by_id("num-operands").unwrap().children();
+        let elem_eq = self.elem_eq.cast::<HtmlElement>().unwrap();
+        elem_eq.class_list().remove_5("text-lime-500",
+            "ring-red-400", "ring-lime-400",    // XXX: better ideas?
+            "text-red-500", "ring-2").unwrap();
+        elem_eq.set_inner_text("≠?");
+
+        //let coll = web_sys::window().unwrap().document().unwrap()
+        //    .get_element_by_id("num-operands").unwrap().children();
+        let coll = self.num_div.cast::<HtmlElement>().unwrap().children();
 
         for i in 0..coll.length() {
             let inp = coll.item(i).unwrap()
@@ -82,7 +104,7 @@ impl Game24 {
     fn toggle_hl(el: &HtmlInputElement, hl: bool) {
         if hl {
             el.class_list().add_2("ring-2", "ring-purple-600").unwrap();
-        } else {
+        } else {    // XXX:
             el.class_list().remove_2("ring-2", "ring-purple-600").unwrap();
         }
     }
@@ -92,8 +114,10 @@ enum Msg {
     Operator(HtmlInputElement),
     Operands(HtmlInputElement),
     Editable(HtmlInputElement),
+    Update(u8, i32),
     Resize(u8),
     Restore,
+    Resolve,
 }
 
 impl Component for Game24 {
@@ -103,8 +127,8 @@ impl Component for Game24 {
     fn create(_ctx: &Context<Self>) -> Self {
         let mut game = Self { goal: 24, nums: vec![],
             deck: (0..52).collect::<Vec<_>>(), pos: 0, cnt: 1,
-            //expr: Default::default(),
-            elem_op: None, elem_nq: VecDeque::new(),
+            sol_div: NodeRef::default(), num_div: NodeRef::default(),
+            elem_eq: NodeRef::default(), elem_op: None, elem_nq: VecDeque::new(),
         };  game.dealer(4);     game
     }
 
@@ -112,7 +136,7 @@ impl Component for Game24 {
   fn view(&self, ctx: &Context<Self>) -> Html {
     let link = ctx.link();
 
-    let ops_selected = link.callback(|e: Event|
+    let ops_checked = link.callback(|e: Event|
         Msg::Operator(e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap()));
         // require value='xxx' in <input>, default is 'on'
 
@@ -120,9 +144,10 @@ impl Component for Game24 {
         Msg::Resize(e.target().unwrap()
             .dyn_into::<web_sys::HtmlSelectElement>().unwrap().value().parse::<u8>().unwrap()));
 
+    let resolve = link.callback(|_| Msg::Resolve);
     let restore = link.callback(|_| Msg::Restore);
     let refresh = link.callback(|_| Msg::Resize(0));
-    //web_sys::window().map(|window| window.location().reload());
+    //web_sys::window().map(|win| win.location().reload());
 
     // XXX: drag to exchange/replace?
 
@@ -131,13 +156,19 @@ impl Component for Game24 {
 
     let num_readonly = Callback::from(|e: FocusEvent| {
         let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-        if  inp.check_validity() {
-            inp.set_attribute("readonly", "").unwrap();
-        } else { inp.focus().unwrap();  inp.select(); }
-        log::info!("input {}", inp.value());
+        if !inp.read_only() { inp.set_attribute("readonly", "").unwrap(); }
     });
 
-    let num_selected = link.callback(|e: FocusEvent|
+    let num_changed = link.batch_callback(|e: Event| {
+        let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+        if  inp.check_validity() {  //log::info!("input {}", inp.value());
+            inp.set_attribute("readonly", "").unwrap();
+            Some(Msg::Update(inp.get_attribute("id").unwrap().get(1..).unwrap()
+                .parse::<u8>().unwrap(), inp.value().parse::<i32>().unwrap()))
+        } else { inp.focus().unwrap();   inp.select();  None }
+    });
+
+    let num_checked = link.callback(|e: FocusEvent|
         Msg::Operands(e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap()));
 
     let num_class = "px-4 py-2 m-4 w-fit bg-transparent border border-purple-200
@@ -145,79 +176,81 @@ impl Component for Game24 {
         hover:text-white hover:bg-purple-600 hover:border-transparent
         focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2
         shadow-xl invalid:border-red-500";
-    let nums = self.nums.iter().enumerate().map(|(_i, pkn)| {
-        let (num, sid) = ((pkn % 13) + 1, (pkn / 13)/* % 4 */);
+    let nums = self.nums.iter().enumerate().map(|(idx, num)| {
+        /*let (num, sid) = ((num % 13) + 1, (num / 13)/* % 4 */);
 
         let court = [ "T", "J", "Q", "K" ];
         let suits = [ "S", "C", "D", "H" ];     // "♣♦♥♠"
         let _ = format!(r"{}{}.svg", match num { 1 => "A".to_owned(),
             2..=9 => num.to_string(), 10..=13 => court[(num - 10) as usize].to_owned(),
-            _ => "?".to_owned() }, suits[sid as usize]);     //num  // TODO:
+            _ => "?".to_owned() }, suits[sid as usize]);     //num  // TODO: */
 
         html!{  // XXX: https://en.wikipedia.org/wiki/Playing_cards_in_Unicode
-            <input type="text" value={ num.to_string() } readonly=true draggable="true"
+            <input type="text" value={ num.to_string() }
+                id={ format!("N{idx}") } readonly=true draggable="true"
                 placeholder="?" inputmode="numeric" pattern=r"-?\d+" maxlength="3" size="3"
                 class={ classes!(num_class, "rounded-full") } data-bs-toggle="tooltip"
-                title="Click to (un)select\nDouble click to input\nDrag over to exchange"/>
+                title="Click to (un)check\nDouble click to input\nDrag over to exchange"/>
         }
     }).collect::<Html>();
 
-    let ops = [ "+", "-", "×", "÷" ].into_iter().map(|op| html!{ <div class="m-4">
+    let ops = [ "+", "-", "×", "÷" ].into_iter().map(|op| html!{
+        <div class="m-4 inline-block">
             <input type="radio" id={ op } value={ op } class="hidden peer"/>
             <label for={ op } draggable="true" data-bs-toggle="tooltip"
-                title="Click to select/unselect\nDrag over to replace"
+                title="Click to (un)check\nDrag over to replace"
                 class="px-4 py-2 m-4 bg-indigo-600 text-white text-3xl font-bold
-                    hover:bg-indigo-500 peer-checked:outline-none
-                    peer-checked:ring-2 peer-checked:ring-indigo-500
-                    peer-checked:ring-offset-2 peer-checked:bg-transparent
-                    rounded-md shadow-xl">{ op }</label>
+                hover:bg-indigo-500 peer-checked:outline-none peer-checked:ring-2
+                peer-checked:ring-indigo-500 peer-checked:ring-offset-2
+                peer-checked:bg-transparent rounded-md shadow-xl">{ op }</label>
         </div>
     }).collect::<Html>();
 
     let ctrl_class = "px-4 py-2 m-4 text-gray-900 font-bold bg-gradient-to-r
-        from-lime-200 via-lime-400 to-lime-500 rounded-lg hover:bg-gradient-to-br
-        focus:ring-4 focus:outline-none focus:ring-lime-300
-        dark:focus:ring-lime-800 shadow-lg shadow-lime-500/50
-        dark:shadow-lg dark:shadow-lime-800/80";
+        from-stone-200 via-stone-400 to-stone-500 rounded-lg hover:bg-gradient-to-br
+        focus:ring-4 focus:outline-none focus:ring-stone-300 shadow-lg shadow-stone-500/50
+        dark:focus:ring-stone-800 dark:shadow-lg dark:shadow-stone-800/80";
 
     let cnt_options = (4..=6).map(|n| html!{
         <option value={ n.to_string() } selected={ n == self.nums.len() }>{
             format!("{n} nums") }</option>
     }).collect::<Html>();
 
-    html!{ <main>   //<div id="play-cards"/>    // TODO:
+    html!{ <main class="mt-auto mb-auto">
+        //<div id="play-cards"/>    // TODO:
 
         <p class="hidden">{
             "Click on a operator and two numbers to form expression, " }<br/>{
             "repeat the process until all numbers are consumed, " }<br/>{
             "the final expression will be determined automatically." }<br/><br/></p>
 
-        <div id="ops-group" onchange={ ops_selected }
-            class="flex place-content-center">{ ops }</div>
+        <div id="ops-group" onchange={ ops_checked }>{ ops }</div>
 
-        <div id="expr-skel" class="flex place-content-center">
-            <style>{ r"
+        <div id="expr-skel">
+            /*<style>{ r"
                 [contenteditable='true'].single-line { white-space: nowrap; overflow: hidden; }
                 [contenteditable='true'].single-line br { display: none; }
                 [contenteditable='true'].single-line  * { display: inline; white-space: nowrap; }
-            " }</style>
+            " }</style>*/
 
-            <div id="num-operands" class="flex place-content-center" onfocus={ num_selected }
-                ondblclick={ num_editable.clone() } onblur={ num_readonly.clone() }>{
-                nums }</div>
+            <div id="num-operands" class="inline-block" ref={ self.num_div.clone() }
+                onfocus={ num_checked } ondblclick={ num_editable.clone() }
+                onblur={ num_readonly.clone() } onchange={ num_changed.clone() }>{ nums }</div>
 
             // data-bs-toggle="collapse" data-bs-target="#all-solutions" aria-expanded="false" aria-controls="all-solutions"
-            <button class="py-2 px-4 m-4 text-white text-3xl font-bold rounded-md
-                hover:outline-none hover:ring-2 focus:ring-indigo-500 active:ring-offset-2"
-                data-bs-toggle="tooltip" title="Click to show solutions">{ "≠?" }</button>
-            <input type="text" value={ self.goal.to_string() } readonly=true
-                ondblclick={ num_editable } onblur={ num_readonly }
+            <button onclick={ resolve } ref={ self.elem_eq.clone() } //text-white
+                class="py-2 px-4 m-4 text-3xl font-bold rounded-md
+                hover:outline-none hover:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                data-bs-toggle="tooltip" title="Click to get solutions">{ "≠?" }</button>
+            <input type="text" value={ self.goal.to_string() }
+                id={ format!("G{}", self.nums.len()) } readonly=true
+                ondblclick={ num_editable } onchange={ num_changed } onblur={ num_readonly }
                 placeholder="??" inputmode="numeric" pattern=r"-?\d+" maxlength="4" size="4"
                 class={ classes!(num_class, "rounded-md") }
                 data-bs-toggle="tooltip" title="Double click to input new goal"/>
         </div>
 
-        <p class="hidden peer-invalid:visible relative -top-[1rem] text-red-700 font-light">{
+        <p class="hidden peer-invalid:visible relative -top-[1rem] text-red-500 font-light">{
              "Invalid integer number input, please correct it!" }</p> // invisible vs hidden
 
         <div id="ctrl-btns">
@@ -230,8 +263,9 @@ impl Component for Game24 {
                 data-bs-toogle="tooltip" title="Click to refresh new">{ "Refresh" }</button>
         </div>
 
-        <div id="all-solutions" class="collapse block mt-4 max-h-24
-            overflow-y-auto text-white text-2xl">{ "Show off all solutions" }</div>
+        <div id="all-solutions" ref={ self.sol_div.clone() }
+            class="overflow-y-auto ml-auto mr-auto w-fit text-left text-lime-500 text-xl"
+            data-bs-toggle="tooltip" title="All independent solutions"></div>
     </main> }
   }
 
@@ -271,6 +305,25 @@ impl Component for Game24 {
             }
 
             Msg::Restore => { self.clear_state();   true }
+            Msg::Update(idx, val) => {  let idx = idx as usize;
+                if idx == self.nums.len() { self.goal = val; } else {
+                    self.nums[idx] = val;
+                }   false
+            }
+
+            Msg::Resolve => {
+                let sol = calc24_coll(&self.goal.into(),
+                    &self.nums.iter().map(|&n|
+                    Rational::from(n)).collect::<Vec<_>>(), DynProg);
+                let sol = sol.into_iter().map(|str| {
+                    let mut str = str.chars().map(|ch|
+                        match ch { '*' => '×', '/' => '÷', _ => ch }).collect::<String>();
+                    str.push_str("<br/>");  str
+                }).collect::<Vec<String>>();
+
+                self.sol_div.cast::<HtmlElement>().unwrap()
+                    .set_inner_html(&sol.concat());     false
+            }
         }
     }
 
@@ -286,7 +339,8 @@ fn root_route(routes: &RootRoute) -> Html {
     match routes {
         RootRoute::Home  => html!{ <>
             //margin: 0 auto;   //class: justify-center;    // XXX: not working
-            <style>{ r" body { text-align: center; } " }</style>
+            <style>{ r" body { text-align: center; min-height: 100vh;
+                display: flex; flex-direction: column; } " }</style>
 
             <header><br/>
                 <h1 class="text-4xl"><a href="https://github.com/mhfan/inrust">{
