@@ -1425,6 +1425,12 @@ video {
   width: fit-content;
 }
 
+.appearance-none {
+  -webkit-appearance: none;
+     -moz-appearance: none;
+          appearance: none;
+}
+
 .overflow-y-auto {
   overflow-y: auto;
 }
