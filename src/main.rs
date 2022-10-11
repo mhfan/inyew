@@ -95,14 +95,9 @@ impl Game24 {
         //    .get_element_by_id("num-operands").unwrap().children();
         let coll = self.num_div.cast::<HtmlElement>().unwrap().children();
 
-        //let elem = elem.next_element_sibling().unwrap()   // XXX:
-        //    .next_element_sibling().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-        //if  elem.read_only() { elem.set_read_only(true); elem.blur().unwrap(); }
-
         for i in   0..coll.length() {
             let inp = coll.item(i).unwrap()
                 .dyn_into::<HtmlInputElement>().unwrap();
-            //if !inp.read_only() {   inp.blur().unwrap(); }
             inp.set_max_length(3);  inp.set_size(3);    inp.set_hidden(false);
         }
     }
@@ -180,7 +175,7 @@ impl Component for Game24 {
     let num_checked = link.callback(|e: FocusEvent|
         Msg::Operands(e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap()));
 
-    let num_class = "px-4 py-2 m-4 w-fit
+    let num_class = "px-4 py-2 mx-2 my-4 w-fit
         read-only:bg-transparent bg-stone-200 border border-purple-200
         text-center text-2xl text-purple-600 font-semibold
         hover:text-white hover:bg-purple-600 hover:border-transparent
@@ -205,11 +200,11 @@ impl Component for Game24 {
     }).collect::<Html>();
 
     let ops = [ "+", "-", "×", "÷" ].into_iter().map(|op| html!{
-        <div class="m-4 inline-block">
+        <div class="mx-6 my-4 inline-block">
             <input type="radio" id={ op } value={ op } class="hidden peer"/>
             <label for={ op } draggable="true" data-bs-toggle="tooltip"
                 title="Click to (un)check\nDrag over to replace/exchange"
-                class="px-4 py-2 m-4 bg-indigo-600 text-white text-3xl font-bold
+                class="px-4 py-2 bg-indigo-600 text-white text-3xl font-bold
                 hover:bg-indigo-400 peer-checked:outline-none peer-checked:ring-2
                 peer-checked:ring-indigo-500 peer-checked:ring-offset-2
                 peer-checked:bg-transparent rounded-md shadow-xl">{ op }</label>
@@ -359,7 +354,7 @@ fn root_route(routes: &RootRoute) -> Html {
                     // display: flex; flex-direction: column;
 
             <header><br/><h1 class="text-4xl"><a href="https://github.com/mhfan/inrust">{
-                "24 Game/Puzzle/Challenge" }</a></h1><br/>
+                "24 Challenge" }</a></h1><br/>
             </header>
 
             <Game24 />
