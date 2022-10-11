@@ -1,72 +1,8 @@
-![gh-pages-publish](https://github.com/ja-sonyun/yew-template-for-github-io/actions/workflows/publish_gh_pages.yml/badge.svg)
 
-## [Yew](https://yew.rs/) Template for Github.io
-Yew template that deployable as is for github.io (or [as a normal yew template](https://github.com/Ja-sonYun/yew-template-for-github-io#as-a-normal-templatenot-for-githubio) with css/scss stuffs without github.io), with [tailwind.css](https://tailwindcss.com/) and webpack with your css/scss and [trunk](https://trunkrs.dev) for build.
+![gh-pages-publish](https://github.com/mhfan/inyew/actions/workflows/publish_gh_pages.yml/badge.svg)
 
-[About github.io](https://pages.github.com/)  
+# Study Yew/Rust for Frontend GUI
 
-```
-main branch
-├── index.html
-│
-├── css                       # css/scss
-│   ├── index.css
-│   ├── index.scss
-│   ├── main.scss
-│   └── tailwind
-│       └── tailwind_base.css
-│
-├── src                       # yew here
-│   └── main.rs
-│
-├── static
-│   └── 404.html
-│
-├── README.md
-├── Cargo.lock
-├── Cargo.toml
-├── Trunk.toml
-├── package.json
-├── tailwind.config.js
-└── webpack.config.js
+在 <https://github.com/mhfan/inrust> 这个 Rust 学习项目中我收集、整理并分别用 Rust 和 C++ 实现了一系列泛化和通用 '24' 点计算问题的简洁算法，还做了命令行的游戏交互程序；然而，为了能让一个八九岁、小学四五年级的小朋友 (我可爱的小儿子) 更有兴趣地玩，还需要为基于扑克牌数的经典 24 点计算游戏实现一套足够简洁的图形用户界面；简单研究了 [Slint](https://github.com/slint-ui/slint) 和 [egui](https://github.com/emilk/egui) 之后发现， Rust 世界并没有足够好用能够实现我希望的简洁交互的 GUI 框架，好在 Rust 在 Wasm 世界足够灵活和优秀 (Rust 本来就是从 Mozilla 开始的)，[Html5 + CSS3](https://www.w3schools.com/html/) 应该足以描述任何 GUI 交互形式，于是决定研究 Rust + Wasm + [Yew](https://yew.rs/)，所以有了本项目利用 GitHub Pages 技术部署在 [Github.io](https://pages.github.com/) 上，后面加上 [Tauri](https://github.com/tauri-apps/tauri) 也能编译成本地多端应用程序，足以满足各种快速原型的开发需求。
 
-gh-pages branch
-├── index.html
-├── 404.html
-├── index-7823f64dca35d01f.js
-├── index-7823f64dca35d01f_bg.wasm
-└── main-baa4389a63fdea1b.css
-```
-
-## Things that you need to do
-
-Go Setting > Code and automation > Pages > Github Pages > Source and change branch from main to gh-pages. if not exists, create new branch named gh-pages.   
-[github action](https://github.com/Ja-sonYun/yew-template-for-github-io/blob/main/.github/workflows/publish_gh_pages.yml) is cofigured. just push your codes to the main branch, and then outputs of `trunk build --release` will automatically deployed.  
-While running `trunk serve`, trunk will watch static and css folder, and do compile for all codes include css/scss in css folder when they had any changes like rust codes in src.
-
-## For {username}.github.io page
-
-you need to modify [this line](https://github.com/Ja-sonYun/yew-template-for-github-io/blob/main/Trunk.toml#L5-L7)
-and [this line](https://github.com/Ja-sonYun/yew-template-for-github-io/blob/main/static/404.html#L25) to 0  
-also check `./src/main.rs`
-
-## For {username}.github.io/{project_name} page
-
-you need to modify [this line](https://github.com/Ja-sonYun/yew-template-for-github-io/blob/main/Trunk.toml#L5-L7)
-and [this line](https://github.com/Ja-sonYun/yew-template-for-github-io/blob/main/static/404.html#L25) to 1
-also check `./src/main.rs`   
-To serve the project on your machine correctly, run `trunk serve --public-url=/{project_name}/`
-
-## As a normal template(not for github.io)
-
-To use without github.io, open `Trunk.toml` and remove [`public_url`](https://github.com/Ja-sonYun/yew-template-for-github-io/blob/main/Trunk.toml#L5) field.  
-Also remove `404.html` in static folder and [this line](https://github.com/Ja-sonYun/yew-template-for-github-io/blob/main/index.html#L7) in `index.html`.  
-Lastly remove `.github/workflow` folder.
-
-## Using Custom Domain
-
-go to `./.github/workflows/publish_gh_pages.yml` and add your domain in cname field.  
-
-## Routing
-
-Using `static/404.html`. for more information, checkout https://github.com/rafgraph/spa-github-pages.  
+Based on [Yew Template](https://github.com/Ja-sonYun/yew-template-for-github-io) for [Github.io](https://pages.github.com/), with [tailwind.css](https://tailwindcss.com/) and webpack with your css/scss and [trunk](https://trunkrs.dev) for build.
