@@ -267,7 +267,7 @@ impl Component for Game24 {
         <div id="ctrl-btns">
             <input type="reset" value={ "Restore" } class={ classes!(ctrl_class) }
                 onclick={ restore } data-bs-toogle="tooltip" title="Click reset to initial"/>
-            <select class={ classes!(ctrl_class) } onchange={ cnt_changed }
+            <select class={ classes!(ctrl_class, "appearance-none") } onchange={ cnt_changed }
                 data-bs-toogle="tooltip" title="Click to select numbers count">{
                 cnt_options }</select>
             <button class={ classes!(ctrl_class) } onclick={ refresh }
