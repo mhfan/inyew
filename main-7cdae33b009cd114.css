@@ -1375,12 +1375,20 @@ video {
   visibility: hidden;
 }
 
+.absolute {
+  position: absolute;
+}
+
 .relative {
   position: relative;
 }
 
 .-top-\[1rem\] {
   top: -1rem;
+}
+
+.bottom-0 {
+  bottom: 0px;
 }
 
 .m-4 {
