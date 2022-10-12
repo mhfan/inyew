@@ -175,7 +175,7 @@ impl Component for Game24 {
     let num_checked = link.callback(|e: FocusEvent|
         Msg::Operands(e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap()));
 
-    let num_class = "px-4 py-2 mx-2 my-4 w-fit
+    let num_class = "px-4 py-2 mx-2 my-4 w-fit appearance-none
         read-only:bg-transparent bg-stone-200 border border-purple-200
         text-center text-2xl text-purple-600 font-semibold
         hover:text-white hover:bg-purple-600 hover:border-transparent
@@ -350,8 +350,8 @@ fn root_route(routes: &RootRoute) -> Html {
     match routes {
         RootRoute::Home  => html!{ <>
             //margin: 0 auto;   //class: justify-center;    // XXX: not working
-            <style>{ r"body { text-align: center; height: 100vh; }" }</style>
-                    // display: flex; flex-direction: column;
+            <style>{ r"body { text-align: center; }" }</style>
+                    // height: 100vh; display: flex; flex-direction: column;
 
             <header><br/><h1 class="text-4xl"><a href="https://github.com/mhfan/inrust">{
                 "24 Challenge" }</a></h1><br/>
