@@ -1448,6 +1448,12 @@ video {
   width: fit-content;
 }
 
+.select-text {
+  -webkit-user-select: text;
+     -moz-user-select: text;
+          user-select: text;
+}
+
 .appearance-none {
   -webkit-appearance: none;
      -moz-appearance: none;
