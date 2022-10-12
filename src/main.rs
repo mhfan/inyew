@@ -83,23 +83,23 @@ impl Game24 {
         self.elem_nq.iter().for_each(|el| Self::toggle_hl(el, false));
         self.elem_nq.clear();   self.elem_op = None;    self.cnt = 1;
 
-        let elem_eq = self.elem_eq.cast::<HtmlElement>().unwrap();
+        let  elem_eq = self.elem_eq.cast::<HtmlElement>().unwrap();
         elem_eq.class_list().remove_5("ring-red-400",   // XXX: better ideas?
             "text-red-500", "text-lime-500",
             "ring-lime-400", "ring-2").unwrap();
         elem_eq.set_inner_text("≠?");
 
         self.sol_div.cast::<HtmlElement>().unwrap().set_inner_text("");
-
+        let coll = self.num_div.cast::<HtmlElement>().unwrap().children();
         //let coll = web_sys::window().unwrap().document().unwrap()
         //    .get_element_by_id("num-operands").unwrap().children();
-        let coll = self.num_div.cast::<HtmlElement>().unwrap().children();
 
-        for i in   0..coll.length() {
+        for i in 0..coll.length() {
             let inp = coll.item(i).unwrap()
                 .dyn_into::<HtmlInputElement>().unwrap();
+            if (self.nums.len() as u32 - 1) < i { inp.set_hidden(true); continue }
             inp.set_max_length(3);  inp.set_size(3);    inp.set_hidden(false);
-        }
+        }   //log::info!("clear state");
     }
 
     fn toggle_hl(el: &HtmlInputElement, hl: bool) {
@@ -165,14 +165,14 @@ impl Component for Game24 {
 
     let num_changed = link.batch_callback(|e: Event| {
         let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-        let str = inp.value();  log::info!("input {}", str);
+        let str = inp.value();  //log::info!("input {}", str);
         if !str.is_empty() && inp.check_validity() {    inp.set_read_only(true);
             Some(Msg::Update(inp.get_attribute("id").unwrap().get(1..).unwrap()
                 .parse::<u8>().unwrap(), str.parse::<i32>().unwrap()))
         } else { inp.focus().unwrap();   inp.select();  None }
     });
 
-    let num_checked = link.callback(|e: FocusEvent|
+    let num_checked = link.callback(|e: MouseEvent|
         Msg::Operands(e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap()));
 
     let num_class = "px-4 py-2 mx-2 my-4 w-fit appearance-none
@@ -238,9 +238,9 @@ impl Component for Game24 {
                 [contenteditable='true'].single-line  * { display: inline; white-space: nowrap; }
             " }</style>*/
 
-            <div id="num-operands" class="inline-block" ref={ self.num_div.clone() }
+            <span id="num-operands" class="inline-block" ref={ self.num_div.clone() }
                 ondblclick={ num_editable.clone() } onchange={ num_changed.clone() }
-                onfocus={ num_checked } onblur={ num_readonly.clone() }>{ nums }</div>
+                onclick={ num_checked } onblur={ num_readonly.clone() }>{ nums }</span>
 
             // data-bs-toggle="collapse" data-bs-target="#all-solutions" aria-expanded="false" aria-controls="all-solutions"
             <button onclick={ resolve } ref={ self.elem_eq.clone() } //text-white
@@ -302,21 +302,19 @@ impl Component for Game24 {
                 //inp.set_selection_range(end, inp.value().len() as u32).unwrap();
                 if self.cnt < 2 { inp.set_read_only(false); }
                 if inp.get_attribute("id").unwrap().starts_with('N') {
-                    self.update(_ctx, Msg::Operands(inp));  // don't check on editing
+                    //self.update(_ctx, Msg::Operands(inp));  // don't check on editing
                 }   false
             }
 
-            Msg::Resize(n) => {    self.clear_state();
-                if 0 < n { self.dealer(n as usize); } else {
-                           self.dealer(self.nums.len());
-                }   true
+            Msg::Resize(n) => {
+                self.dealer(if 0 < n { n as usize } else { self.nums.len() });
+                self.clear_state();     true
             }
 
             Msg::Restore => { self.clear_state();   true }
             Msg::Update(idx, val) => {  let idx = idx as usize;
-                if idx == self.nums.len() { self.goal = val; } else {
-                    self.nums[idx] = val;
-                }   false
+                if idx == self.nums.len() { self.goal = val; } else { self.nums[idx] = val; }
+                false
             }
 
             Msg::Resolve => {
@@ -350,8 +348,8 @@ fn root_route(routes: &RootRoute) -> Html {
     match routes {
         RootRoute::Home  => html!{ <>
             //margin: 0 auto;   //class: justify-center;    // XXX: not working
-            <style>{ r"body { text-align: center; }" }</style>
-                    // height: 100vh; display: flex; flex-direction: column;
+            <style>{ r"body { text-align: center; height: 100vh; }" }</style>
+                    // display: flex; flex-direction: column;
 
             <header><br/><h1 class="text-4xl"><a href="https://github.com/mhfan/inrust">{
                 "24 Challenge" }</a></h1><br/>
@@ -359,7 +357,7 @@ fn root_route(routes: &RootRoute) -> Html {
 
             <Game24 />
 
-            <footer><br/><p>{ "Copyright © 2022, " }    // &copy;
+            <footer><br/><p>{ "Copyright © 2022 " }  // &copy; // classe="absolute bottom-0"
                 <a href="https://github.com/mhfan">{ "mhfan" }</a></p><br/></footer>
         </> },
 
