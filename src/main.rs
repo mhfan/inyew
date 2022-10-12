@@ -175,7 +175,7 @@ impl Component for Game24 {
     let num_checked = link.callback(|e: MouseEvent|
         Msg::Operands(e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap()));
 
-    let num_class = "px-4 py-2 my-4 w-fit appearance-none
+    let num_class = "px-4 py-2 my-4 w-fit appearance-none select-text
         read-only:bg-transparent bg-stone-200 border border-purple-200
         text-center text-2xl text-purple-600 font-semibold
         hover:text-white hover:bg-purple-600 hover:border-transparent
@@ -299,11 +299,12 @@ impl Component for Game24 {
             }
 
             Msg::Editable(inp) => {
-                /*inp.set_selection_range(end, inp.value().len() as u32).unwrap();
-                if inp.get_attribute("id").unwrap().starts_with('N') {
-                    self.update(_ctx, Msg::Operands(inp));  // don't check on editing
-                } */
-                if self.cnt < 2 { inp.set_read_only(false); }   false
+                let end = inp.value().len() as u32;
+                inp.set_selection_range(end, end).unwrap();
+                /*if inp.get_attribute("id").unwrap().starts_with('N') {
+                    self.update(_ctx, Msg::Operands(inp));  // XXX: don't check on editing
+                }*/
+                if self.cnt < 2 { inp.set_read_only(false); }   true
             }
 
             Msg::Resize(n) => {
