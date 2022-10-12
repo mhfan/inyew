@@ -175,7 +175,7 @@ impl Component for Game24 {
     let num_checked = link.callback(|e: MouseEvent|
         Msg::Operands(e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap()));
 
-    let num_class = "px-4 py-2 mx-2 my-4 w-fit appearance-none
+    let num_class = "px-4 py-2 my-4 w-fit appearance-none
         read-only:bg-transparent bg-stone-200 border border-purple-200
         text-center text-2xl text-purple-600 font-semibold
         hover:text-white hover:bg-purple-600 hover:border-transparent
@@ -194,14 +194,14 @@ impl Component for Game24 {
             <input type="text" value={ num.to_string() }
                 id={ format!("N{idx}") } readonly=true draggable="true"
                 placeholder="?" inputmode="numeric" pattern=r"-?\d+" maxlength="3" size="3"
-                class={ classes!(num_class, "rounded-full") } data-bs-toggle="tooltip"
+                class={ classes!(num_class, "rounded-full", "mx-2") } data-bs-toggle="tooltip"
                 title="Click to (un)check\nDouble click to input\nDrag over to exchange"/>
         }
     }).collect::<Html>();
 
     let ops = [ "+", "-", "×", "÷" ].into_iter().map(|op| html!{
         <div class="mx-6 my-4 inline-block">
-            <input type="radio" id={ op } value={ op } class="hidden peer"/>
+            <input type="radio" id={ op } value={ op } name="ops" class="hidden peer"/>
             <label for={ op } draggable="true" data-bs-toggle="tooltip"
                 title="Click to (un)check\nDrag over to replace/exchange"
                 class="px-4 py-2 bg-indigo-600 text-white text-3xl font-bold
@@ -238,13 +238,13 @@ impl Component for Game24 {
                 [contenteditable='true'].single-line  * { display: inline; white-space: nowrap; }
             " }</style>*/
 
-            <span id="num-operands" class="inline-block" ref={ self.num_div.clone() }
+            <span id="num-operands" ref={ self.num_div.clone() }
                 ondblclick={ num_editable.clone() } onchange={ num_changed.clone() }
                 onclick={ num_checked } onblur={ num_readonly.clone() }>{ nums }</span>
 
             // data-bs-toggle="collapse" data-bs-target="#all-solutions" aria-expanded="false" aria-controls="all-solutions"
             <button onclick={ resolve } ref={ self.elem_eq.clone() } //text-white
-                class="py-2 px-4 m-4 text-3xl font-bold rounded-md
+                class="px-4 py-2 m-4 text-3xl font-bold rounded-md
                 hover:outline-none hover:ring-2 hover:ring-indigo-400
                 focus:ring-indigo-500 focus:ring-offset-2"
                 data-bs-toggle="tooltip" title="Click to get solutions">{ "≠?" }</button>
@@ -299,11 +299,11 @@ impl Component for Game24 {
             }
 
             Msg::Editable(inp) => {
-                //inp.set_selection_range(end, inp.value().len() as u32).unwrap();
-                if self.cnt < 2 { inp.set_read_only(false); }
+                /*inp.set_selection_range(end, inp.value().len() as u32).unwrap();
                 if inp.get_attribute("id").unwrap().starts_with('N') {
-                    //self.update(_ctx, Msg::Operands(inp));  // don't check on editing
-                }   false
+                    self.update(_ctx, Msg::Operands(inp));  // don't check on editing
+                } */
+                if self.cnt < 2 { inp.set_read_only(false); }   false
             }
 
             Msg::Resize(n) => {
