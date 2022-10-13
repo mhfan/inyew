@@ -64,6 +64,7 @@ impl Game24 {
             let str = str.chars().map(|ch|
                 match ch { '×' => '*', '÷' => '/', _ => ch }).collect::<String>();
             let elem_eq = self.elem_eq.cast::<HtmlElement>().unwrap();
+
             if (mexe::eval(str).unwrap() + 0.1) as i32 == self.goal {
                 elem_eq.class_list().add_3("ring-2", "text-lime-500",
                     "ring-lime-400").unwrap();
@@ -75,8 +76,8 @@ impl Game24 {
             }
         }
 
-        self.elem_nq.iter().for_each(|el| Self::toggle_hl(el, false));
-        self.elem_nq.clear();   op.set_checked(false);  self.elem_op = None;
+        nq.iter().for_each(|el| Self::toggle_hl(el, false));
+        nq.clear();   op.set_checked(false);  self.elem_op = None;
     }
 
     fn clear_state(&mut self) {     //log::info!("clear state");
@@ -298,13 +299,13 @@ impl Component for Game24 {
                 if  nq.len() == 2 && self.elem_op != None { self.form_expr(); }     false
             }
 
-            Msg::Editable(inp) => {
+            Msg::Editable(inp) => if 1 < self.cnt { false } else {
                 let end = inp.value().len() as u32;
                 inp.set_selection_range(end, end).unwrap();
                 /*if inp.get_attribute("id").unwrap().starts_with('N') {
                     self.update(_ctx, Msg::Operands(inp));  // XXX: don't check on editing
                 }*/
-                if self.cnt < 2 { inp.set_read_only(false); }   true
+                inp.set_read_only(false);   true
             }
 
             Msg::Resize(n) => {
@@ -357,6 +358,10 @@ fn root_route(routes: &RootRoute) -> Html {
             </header>
 
             <Game24 />
+
+            // https://css-tricks.com
+            // https://www.w3schools.com
+            // https://developer.mozilla.org/en-US/docs/Web/HTML
 
             <footer><br/><p>{ "Copyright © 2022 " }  // &copy; // classe="absolute bottom-0"
                 <a href="https://github.com/mhfan">{ "mhfan" }</a></p><br/></footer>
