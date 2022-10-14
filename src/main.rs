@@ -24,16 +24,16 @@ struct Game24 {
     goal: i32,
     nums: Vec<i32>,
 
-    deck: Vec<i32>,
-    pos: usize,
-    cnt: usize,
+    deck: Vec<i32>, // hold all cards number
+    spos: usize,    // shuffle position
+    ncnt: usize,
 
-    sol_div: NodeRef,
-    num_div: NodeRef,
-    elem_eq: NodeRef,
+    sol_elm: NodeRef,
+    grp_elm: NodeRef,
+    eqm_elm: NodeRef,
 
-    elem_op:   Option<HtmlInputElement>,
-    elem_nq: VecDeque<HtmlInputElement>,
+    opr_elm:   Option<HtmlInputElement>,
+    opd_elq: VecDeque<HtmlInputElement>,
 }
 
 impl Game24 {
@@ -42,10 +42,10 @@ impl Game24 {
         let mut rng = thread_rng();
 
         loop {
-            if self.pos == 0 { self.deck.shuffle(&mut rng); }
-            self.nums = self.deck[self.pos..].partial_shuffle(&mut rng,
+            if self.spos == 0 { self.deck.shuffle(&mut rng); }
+            self.nums = self.deck[self.spos..].partial_shuffle(&mut rng,
                 n).0.iter().map(|n| (n % 13) + 1).collect::<Vec<_>>();
-            self.pos += n;  if self.deck.len() < self.pos + n { self.pos = 0; }
+            self.spos += n; if self.deck.len() < self.spos + n { self.spos = 0; }
 
             if !calc24_first(&self.goal.into(), &self.nums.iter().map(|&n|
                 Rational::from(n)).collect::<Vec<_>>(), DynProg).is_empty() { break }
@@ -53,47 +53,47 @@ impl Game24 {
     }
 
     fn form_expr(&mut self) {
-        let nq = &mut self.elem_nq;
-        let op = self.elem_op.as_ref().unwrap();
-        let str = format!("({} {} {})", nq[0].value(), op.value(), nq[1].value());
+        let opr = self.opr_elm.as_ref().unwrap();
+        let opd = &mut self.opd_elq;
+        let str = format!("({} {} {})", opd[0].value(), opr.value(), opd[1].value());
 
-        nq[1].set_size (str.len() as u32);  nq[1].set_max_length(str.len() as i32);
-        nq[1].set_value(&str);  nq[1].blur().unwrap();  nq[0].set_hidden(true);
+        opd[1].set_size (str.len() as u32);     opd[1].set_max_length(str.len() as i32);
+        opd[1].set_value(&str);     opd[1].blur().unwrap();     opd[0].set_hidden(true);
 
-        self.cnt += 1;  if self.cnt == self.nums.len() {
+        self.ncnt += 1; if self.ncnt == self.nums.len() {
             let str = str.chars().map(|ch|
                 match ch { '×' => '*', '÷' => '/', _ => ch }).collect::<String>();
-            let elem_eq = self.elem_eq.cast::<HtmlElement>().unwrap();
+            let eqm_elm = self.eqm_elm.cast::<HtmlElement>().unwrap();
 
             if (mexe::eval(str).unwrap() + 0.1) as i32 == self.goal {
-                elem_eq.class_list().add_3("ring-2", "text-lime-500",
+                eqm_elm.class_list().add_3("ring-2", "text-lime-500",
                     "ring-lime-400").unwrap();
-                elem_eq.set_inner_text("=");
+                eqm_elm.set_inner_text("=");
             } else {    // XXX:
-                elem_eq.class_list().add_3("ring-2", "text-red-500",
+                eqm_elm.class_list().add_3("ring-2", "text-red-500",
                     "ring-red-400").unwrap();
-                elem_eq.set_inner_text("≠");
+                eqm_elm.set_inner_text("≠");
             }
         }
 
-        nq.iter().for_each(|el| Self::toggle_hl(el, false));
-        nq.clear();   op.set_checked(false);  self.elem_op = None;
+        opd.iter().for_each(|el| Self::toggle_hl(el, false));
+        opd.clear();    opr.set_checked(false);     self.opr_elm = None;
     }
 
     fn clear_state(&mut self) {     //log::info!("clear state");
-        self.elem_nq.iter().for_each(|el| Self::toggle_hl(el, false));
-        self.elem_nq.clear();   self.elem_op = None;    self.cnt = 1;
+        self.opd_elq.iter().for_each(|el| Self::toggle_hl(el, false));
+        self.opd_elq.clear();   self.opr_elm = None;    self.ncnt = 1;
 
-        let  elem_eq = self.elem_eq.cast::<HtmlElement>().unwrap();
-        elem_eq.class_list().remove_5("ring-red-400",   // XXX: better ideas?
+        let  eqm_elm = self.eqm_elm.cast::<HtmlElement>().unwrap();
+        eqm_elm.class_list().remove_5("ring-red-400",   // XXX: better ideas?
             "text-red-500", "text-lime-500",
             "ring-lime-400", "ring-2").unwrap();
-        elem_eq.set_inner_text("≠?");
+        eqm_elm.set_inner_text("≠?");
 
-        self.sol_div.cast::<HtmlElement>().unwrap().set_inner_text("");
-        let coll = self.num_div.cast::<HtmlElement>().unwrap().children();
+        self.sol_elm.cast::<HtmlElement>().unwrap().set_inner_text("");
+        let coll = self.grp_elm.cast::<HtmlElement>().unwrap().children();
         //let coll = web_sys::window().unwrap().document().unwrap()
-        //    .get_element_by_id("num-operands").unwrap().children();
+        //    .get_element_by_id("nums-group").unwrap().children();
 
         for i in 0..coll.length() {
             let inp = coll.item(i).unwrap()
@@ -128,9 +128,9 @@ impl Component for Game24 {
 
     fn create(_ctx: &Context<Self>) -> Self {
         let mut game = Self { goal: 24, nums: vec![],
-            deck: (0..52).collect::<Vec<_>>(), pos: 0, cnt: 1,
-            sol_div: NodeRef::default(), num_div: NodeRef::default(),
-            elem_eq: NodeRef::default(), elem_op: None, elem_nq: VecDeque::new(),
+            deck: (0..52).collect::<Vec<_>>(), spos: 0, ncnt: 1,
+            sol_elm: NodeRef::default(), grp_elm: NodeRef::default(),
+            eqm_elm: NodeRef::default(), opr_elm: None, opd_elq: VecDeque::new(),
         };  game.dealer(4);     game
     }
 
@@ -239,12 +239,12 @@ impl Component for Game24 {
                 [contenteditable='true'].single-line  * { display: inline; white-space: nowrap; }
             " }</style>*/
 
-            <span id="num-operands" ref={ self.num_div.clone() }
+            <span id="nums-group" ref={ self.grp_elm.clone() }
                 ondblclick={ num_editable.clone() } onchange={ num_changed.clone() }
                 onclick={ num_checked } onblur={ num_readonly.clone() }>{ nums }</span>
 
             // data-bs-toggle="collapse" data-bs-target="#all-solutions" aria-expanded="false" aria-controls="all-solutions"
-            <button onclick={ resolve } ref={ self.elem_eq.clone() } //text-white
+            <button onclick={ resolve } ref={ self.eqm_elm.clone() } //text-white
                 class="px-4 py-2 m-4 text-3xl font-bold rounded-md
                 hover:outline-none hover:ring-2 hover:ring-indigo-400
                 focus:ring-indigo-500 focus:ring-offset-2"
@@ -270,7 +270,7 @@ impl Component for Game24 {
                 data-bs-toogle="tooltip" title="Click to refresh new">{ "Refresh" }</button>
         </div>
 
-        <div id="all-solutions" ref={ self.sol_div.clone() }
+        <div id="all-solutions" ref={ self.sol_elm.clone() }
             class="overflow-y-auto ml-auto mr-auto w-fit text-left text-lime-500 text-xl"
             data-bs-toggle="tooltip" title="All independent solutions"></div>
     </main> }
@@ -278,28 +278,28 @@ impl Component for Game24 {
 
     fn update  (&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::Operator(inp) => { self.elem_op = Some(inp);
-                if  self.elem_nq.len() == 2 { self.form_expr(); }   false
+            Msg::Operator(inp) => { self.opr_elm = Some(inp);
+                if  self.opd_elq.len() == 2 { self.form_expr(); }   false
             }
 
             Msg::Operands(inp) => {
-                let nq = &mut self.elem_nq;
-                let mut n = nq.len();
-                if  nq.iter().enumerate().any(|(i, el)| {
+                let opd = &mut self.opd_elq;
+                let mut n = opd.len();
+                if  opd.iter().enumerate().any(|(i, el)| {
                     let same = el.is_same_node(Some(inp.as_ref()));
                     if  same { n = i; }     same }) {
                     Self::toggle_hl(&inp, false);
-                    if n < nq.len() { nq.remove(n); }
+                    if n < opd.len() { opd.remove(n); }
                 } else {
                     Self::toggle_hl(&inp, true);
-                    nq.push_back(inp);
+                    opd.push_back(inp);
                 }
 
-                if 2 < nq.len() { Self::toggle_hl(&nq.pop_front().unwrap(), false); }
-                if  nq.len() == 2 && self.elem_op != None { self.form_expr(); }     false
+                if 2 < opd.len() { Self::toggle_hl(&opd.pop_front().unwrap(), false); }
+                if  opd.len() == 2 && self.opr_elm != None { self.form_expr(); }     false
             }
 
-            Msg::Editable(inp) => if 1 < self.cnt { false } else {
+            Msg::Editable(inp) => if 1 < self.ncnt { false } else {
                 let end = inp.value().len() as u32;
                 inp.set_selection_range(end, end).unwrap();
                 /*if inp.get_attribute("id").unwrap().starts_with('N') {
@@ -320,20 +320,20 @@ impl Component for Game24 {
             }
 
             Msg::Resolve => {
-                let sol = calc24_coll(&self.goal.into(),
+                let sols = calc24_coll(&self.goal.into(),
                     &self.nums.iter().map(|&n|
                     Rational::from(n)).collect::<Vec<_>>(), DynProg);
-                let cnt = sol.len();
+                let cnt = sols.len();
 
-                let mut sol = sol.into_iter().map(|str| {
+                let mut sols = sols.into_iter().map(|str| {
                     let mut str = str.chars().map(|ch|
                         match ch { '*' => '×', '/' => '÷', _ => ch }).collect::<String>();
                     str.push_str("<br/>");  str
                 }).collect::<Vec<String>>().concat();
 
-                if 10 < cnt { sol.push_str(&format!(
+                if 5 < cnt { sols.push_str(&format!(
                     "<br/>{cnt} solutions in total<br/>")); }
-                self.sol_div.cast::<HtmlElement>().unwrap().set_inner_html(&sol);   false
+                self.sol_elm.cast::<HtmlElement>().unwrap().set_inner_html(&sols);  false
             }
         }
     }
@@ -346,8 +346,7 @@ impl Component for Game24 {
 }
 
 fn root_route(routes: &RootRoute) -> Html {
-    #[allow(clippy::let_unit_value)]
-    match routes {
+    #[allow(clippy::let_unit_value)] match routes {
         RootRoute::Home  => html!{ <>
             //margin: 0 auto;   //class: justify-center;    // XXX: not working
             <style>{ r"body { text-align: center; height: 100vh; }" }</style>
