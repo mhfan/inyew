@@ -19,6 +19,7 @@ use std::collections::VecDeque;
 use web_sys::{HtmlElement, HtmlInputElement};
 use wasm_bindgen::JsCast;
 use inrust::calc24::*;
+use instant::Instant;
 
 struct Game24 {
     goal: i32,
@@ -26,7 +27,9 @@ struct Game24 {
 
     deck: Vec<i32>, // hold all cards number
     spos: usize,    // shuffle position
+
     ncnt: usize,
+    tnow: Instant,
 
     sol_elm: NodeRef,
     grp_elm: NodeRef,
@@ -49,7 +52,7 @@ impl Game24 {
 
             if !calc24_first(&self.goal.into(), &self.nums.iter().map(|&n|
                 Rational::from(n)).collect::<Vec<_>>(), DynProg).is_empty() { break }
-        }
+        }   self.tnow = Instant::now();
     }
 
     fn form_expr(&mut self) {
@@ -66,6 +69,9 @@ impl Game24 {
             let eqm_elm = self.eqm_elm.cast::<HtmlElement>().unwrap();
 
             if (mexe::eval(str).unwrap() + 0.1) as i32 == self.goal {
+                let dur = self.tnow.elapsed();  self.tnow = Instant::now();
+                log::info!("timing: {:.1}s", dur.as_secs_f32());    // TODO: show it on page
+
                 eqm_elm.class_list().add_3("ring-2", "text-lime-500",
                     "ring-lime-400").unwrap();
                 eqm_elm.set_inner_text("=");
@@ -128,7 +134,7 @@ impl Component for Game24 {
 
     fn create(_ctx: &Context<Self>) -> Self {
         let mut game = Self { goal: 24, nums: vec![],
-            deck: (0..52).collect::<Vec<_>>(), spos: 0, ncnt: 1,
+            deck: (0..52).collect::<Vec<_>>(), spos: 0, ncnt: 1, tnow: Instant::now(),
             sol_elm: NodeRef::default(), grp_elm: NodeRef::default(),
             eqm_elm: NodeRef::default(), opr_elm: None, opd_elq: VecDeque::new(),
         };  game.dealer(4);     game
@@ -141,20 +147,22 @@ impl Component for Game24 {
             }
 
             Msg::Operands(inp) => {
+                if  self.ncnt == self.nums.len() { return false }
                 let opd = &mut self.opd_elq;
-                let mut n = opd.len();
-                if  opd.iter().enumerate().any(|(i, el)| {
-                    let same = el.is_same_node(Some(inp.as_ref()));
-                    if  same { n = i; }     same }) {
-                    Self::toggle_hl(&inp, false);
-                    if n < opd.len() { opd.remove(n); }
-                } else {
-                    Self::toggle_hl(&inp, true);
-                    opd.push_back(inp);
-                }
+                let mut idx = opd.len();
 
-                if 2 < opd.len() { Self::toggle_hl(&opd.pop_front().unwrap(), false); }
-                if  opd.len() == 2 && self.opr_elm != None { self.form_expr(); }     false
+                if  opd.iter().enumerate().any(|(i, el)| {
+                        let dup = el.is_same_node(Some(inp.as_ref()));
+                        if  dup { idx = i; }  dup }) {
+                    if  idx < opd.len() { opd.remove(idx); }
+                            Self::toggle_hl(&inp, false);
+                } else {    Self::toggle_hl(&inp, true);
+
+                    if  opd.len() == 2 {
+                        Self::toggle_hl(&opd.pop_front().unwrap(), false);
+                    }   opd.push_back(inp);
+                    if  opd.len() == 2 && self.opr_elm != None { self.form_expr(); }
+                }   false
             }
 
             Msg::Editable(inp) => if 1 < self.ncnt { false } else {
@@ -229,6 +237,7 @@ impl Component for Game24 {
     let num_changed = link.batch_callback(|e: Event| {
         let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
         let str = inp.value();  //log::info!("input {}", str);
+
         if !str.is_empty() && inp.check_validity() {    inp.set_read_only(true);
             Some(Msg::Update(inp.get_attribute("id").unwrap().get(1..).unwrap()
                 .parse::<u8>().unwrap(), str.parse::<i32>().unwrap()))
