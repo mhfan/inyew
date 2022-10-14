@@ -194,9 +194,9 @@ impl Component for Game24 {
                     str.push_str("<br/>");  str
                 }).collect::<Vec<String>>().concat();
 
-                if 5 < cnt { sols.push_str(&format!(
-                    "<br/>{cnt} solutions in total<br/>")); }
-                self.sol_elm.cast::<HtmlElement>().unwrap().set_inner_html(&sols);  false
+                if 5 < cnt {
+                    sols.push_str(&format!("<br/>{cnt} solutions in total<br/>"));
+                }   self.sol_elm.cast::<HtmlElement>().unwrap().set_inner_html(&sols);  false
             }
         }
     }
@@ -223,8 +223,8 @@ impl Component for Game24 {
 
     // XXX: drag to exchange/replace?
 
-    let num_editable = link.callback(|e: MouseEvent|
-        Msg::Editable(e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap()));
+    let num_editable = link.batch_callback(|e: MouseEvent|
+        e.target().unwrap().dyn_into::<HtmlInputElement>().ok().map(Msg::Editable));
 
     let num_readonly = Callback::from(|e: FocusEvent| {
         let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
@@ -244,8 +244,8 @@ impl Component for Game24 {
         } else { inp.focus().unwrap();   inp.select();  None }
     });
 
-    let num_checked = link.callback(|e: MouseEvent|
-        Msg::Operands(e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap()));
+    let num_checked = link.batch_callback(|e: MouseEvent|
+        e.target().unwrap().dyn_into::<HtmlInputElement>().ok().map(Msg::Operands));
 
     let num_class = "px-4 py-2 my-4 w-fit appearance-none select-text
         read-only:bg-transparent bg-stone-200 border border-purple-200
@@ -384,7 +384,7 @@ fn root_route(routes: &RootRoute) -> Html {
                     // display: flex; flex-direction: column;
 
             <header><GHcorner/><br/><h1 class="text-4xl">
-                <a href="https://github.com/mhfan/inrust">{ "24 Challenge" }</a>
+                <a href="https://github.com/mhfan/inrust">{ "'24' Challenge" }</a>
             </h1><br/></header>
 
             <Game24/>
