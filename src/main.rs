@@ -134,7 +134,69 @@ impl Component for Game24 {
         };  game.dealer(4);     game
     }
 
-    //#[function_component(Game24F)] fn game24() -> Html
+    fn update  (&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            Msg::Operator(inp) => { self.opr_elm = Some(inp);
+                if  self.opd_elq.len() == 2 { self.form_expr(); }   false
+            }
+
+            Msg::Operands(inp) => {
+                let opd = &mut self.opd_elq;
+                let mut n = opd.len();
+                if  opd.iter().enumerate().any(|(i, el)| {
+                    let same = el.is_same_node(Some(inp.as_ref()));
+                    if  same { n = i; }     same }) {
+                    Self::toggle_hl(&inp, false);
+                    if n < opd.len() { opd.remove(n); }
+                } else {
+                    Self::toggle_hl(&inp, true);
+                    opd.push_back(inp);
+                }
+
+                if 2 < opd.len() { Self::toggle_hl(&opd.pop_front().unwrap(), false); }
+                if  opd.len() == 2 && self.opr_elm != None { self.form_expr(); }     false
+            }
+
+            Msg::Editable(inp) => if 1 < self.ncnt { false } else {
+                let end = inp.value().len() as u32;
+                inp.set_selection_range(end, end).unwrap();
+                inp.set_read_only(false);   true
+            }
+
+            Msg::Resize(n) => {
+                self.dealer(if 0 < n { n as usize } else { self.nums.len() });
+                self.clear_state();     true
+            }
+
+            Msg::Restore => { self.clear_state();   true }
+            Msg::Update(idx, val) => {  let idx = idx as usize;
+                if idx == self.nums.len() { self.goal = val; } else { self.nums[idx] = val; }
+                false
+            }
+
+            Msg::Resolve => {
+                let sols = calc24_coll(&self.goal.into(),
+                    &self.nums.iter().map(|&n|
+                    Rational::from(n)).collect::<Vec<_>>(), DynProg);
+                let cnt = sols.len();
+
+                let mut sols = sols.into_iter().map(|str| {
+                    let mut str = str.chars().map(|ch|
+                        match ch { '*' => '×', '/' => '÷', _ => ch }).collect::<String>();
+                    str.push_str("<br/>");  str
+                }).collect::<Vec<String>>().concat();
+
+                if 5 < cnt { sols.push_str(&format!(
+                    "<br/>{cnt} solutions in total<br/>")); }
+                self.sol_elm.cast::<HtmlElement>().unwrap().set_inner_html(&sols);  false
+            }
+        }
+    }
+
+    //fn changed (&mut self, ctx: &Context<Self>) -> bool { true }
+    //fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {}
+    //fn destroy (&mut self, ctx: &Context<Self>) {}
+
   fn view(&self, ctx: &Context<Self>) -> Html {
     let link = ctx.link();
 
@@ -272,77 +334,9 @@ impl Component for Game24 {
 
         <div id="all-solutions" ref={ self.sol_elm.clone() }
             class="overflow-y-auto ml-auto mr-auto w-fit text-left text-lime-500 text-xl"
-            data-bs-toggle="tooltip" title="All independent solutions"></div>
+            data-bs-toggle="tooltip" title="All inequivalent solutions"></div>
     </main> }
   }
-
-    fn update  (&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
-        match msg {
-            Msg::Operator(inp) => { self.opr_elm = Some(inp);
-                if  self.opd_elq.len() == 2 { self.form_expr(); }   false
-            }
-
-            Msg::Operands(inp) => {
-                let opd = &mut self.opd_elq;
-                let mut n = opd.len();
-                if  opd.iter().enumerate().any(|(i, el)| {
-                    let same = el.is_same_node(Some(inp.as_ref()));
-                    if  same { n = i; }     same }) {
-                    Self::toggle_hl(&inp, false);
-                    if n < opd.len() { opd.remove(n); }
-                } else {
-                    Self::toggle_hl(&inp, true);
-                    opd.push_back(inp);
-                }
-
-                if 2 < opd.len() { Self::toggle_hl(&opd.pop_front().unwrap(), false); }
-                if  opd.len() == 2 && self.opr_elm != None { self.form_expr(); }     false
-            }
-
-            Msg::Editable(inp) => if 1 < self.ncnt { false } else {
-                let end = inp.value().len() as u32;
-                inp.set_selection_range(end, end).unwrap();
-                /*if inp.get_attribute("id").unwrap().starts_with('N') {
-                    self.update(_ctx, Msg::Operands(inp));  // XXX: don't check on editing
-                }*/
-                inp.set_read_only(false);   true
-            }
-
-            Msg::Resize(n) => {
-                self.dealer(if 0 < n { n as usize } else { self.nums.len() });
-                self.clear_state();     true
-            }
-
-            Msg::Restore => { self.clear_state();   true }
-            Msg::Update(idx, val) => {  let idx = idx as usize;
-                if idx == self.nums.len() { self.goal = val; } else { self.nums[idx] = val; }
-                false
-            }
-
-            Msg::Resolve => {
-                let sols = calc24_coll(&self.goal.into(),
-                    &self.nums.iter().map(|&n|
-                    Rational::from(n)).collect::<Vec<_>>(), DynProg);
-                let cnt = sols.len();
-
-                let mut sols = sols.into_iter().map(|str| {
-                    let mut str = str.chars().map(|ch|
-                        match ch { '*' => '×', '/' => '÷', _ => ch }).collect::<String>();
-                    str.push_str("<br/>");  str
-                }).collect::<Vec<String>>().concat();
-
-                if 5 < cnt { sols.push_str(&format!(
-                    "<br/>{cnt} solutions in total<br/>")); }
-                self.sol_elm.cast::<HtmlElement>().unwrap().set_inner_html(&sols);  false
-            }
-        }
-    }
-
-    //fn changed (&mut self, ctx: &Context<Self>) -> bool { true }
-
-    //fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {}
-
-    //fn destroy (&mut self, ctx: &Context<Self>) {}
 }
 
 #[function_component(GHcorner)] fn gh_corner() -> Html { html!{
@@ -384,7 +378,7 @@ fn root_route(routes: &RootRoute) -> Html {
                 <a href="https://github.com/mhfan/inrust">{ "24 Challenge" }</a>
             </h1><br/></header>
 
-            <Game24 />
+            <Game24/>
 
             // https://css-tricks.com
             // https://www.w3schools.com
