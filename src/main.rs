@@ -315,7 +315,7 @@ impl Component for Game24 {
                 onclick={ num_checked } onblur={ num_readonly.clone() }>{ nums }</span>
 
             // data-bs-toggle="collapse" data-bs-target="#all-solutions" aria-expanded="false" aria-controls="all-solutions"
-            <button onclick={ resolve } ref={ self.eqm_elm.clone() } //text-white
+            <button ondblclick={ resolve } ref={ self.eqm_elm.clone() } //text-white
                 class="px-4 py-2 m-4 text-3xl font-bold rounded-md
                 hover:outline-none hover:ring-2 hover:ring-indigo-400
                 focus:ring-indigo-500 focus:ring-offset-2"
@@ -368,7 +368,7 @@ impl Component for Game24 {
                 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9
                 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z"
                 fill="currentColor" class="octo-body"/>
-        </svg>
+        </svg>  // https://github.com/tholman/github-corners
         <style>{ ".github-corner:hover .octo-arm { animation: octocat-wave 560ms ease-in-out }
             @keyframes octocat-wave { 0%,100% { transform: rotate(0) }
                 20%,60% { transform: rotate(-25deg) } 40%,80% { transform: rotate(10deg) } }
@@ -397,6 +397,8 @@ fn root_route(routes: &RootRoute) -> Html {
 
             <footer><br/><p>{ "Copyright © 2022 " }  // &copy; // classe="absolute bottom-0"
                 <a href="https://github.com/mhfan">{ "mhfan" }</a></p><br/></footer>
+                //<div align="center">
+                //    <img src="https://page-views.glitch.me/badge?page_id=/24-puzzle"/></div>
         </> },
 
         RootRoute::Route => html!{ <Switch<Route> render={Switch::render(switch)} /> },

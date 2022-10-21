@@ -22,3 +22,4 @@ Based on [Yew Template](https://github.com/Ja-sonYun/yew-template-for-github-io)
 + [ ] 增加一些 CSS 动效；
 + [ ] 用 SVG 矢量资源模拟扑克牌发牌；
 + [ ] 用 Tauri 打包桌面应用和移动应用；
++ [ ] implement a backend/server with Rust;
