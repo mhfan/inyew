@@ -25,7 +25,7 @@ instant = { version = "0.1", features = [ "wasm-bindgen" ] }
 
 mexe = "0.2"
 rand = "0.8"
-inrust = { version = "0.3", git = "https://github.com/mhfan/inrust", default-features = false }
+inrust = { git = "https://github.com/mhfan/inrust", default-features = false, features = [ "ahash" ] }
 
 [dependencies.getrandom]
 features = [ "js", ]
@@ -37,6 +37,11 @@ version  = "0.3"
 
 [profile.dev]
 incremental = true
+
+[profile.release]
+codegen-units = 1
+opt-level = "s"
+lto = true
 
 [workspace]
 

@@ -1,7 +1,7 @@
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const fs = require('fs');
 const projectRoot = __dirname;
-const cssSourceRoot = projectRoot + "/css"
+const cssSourceRoot = projectRoot + "/assets/css"
 
 function findAllCssExtensions(dir) {
   const extensions = [];
@@ -24,7 +24,7 @@ module.exports = {
   mode: "development",
   entry: entryMap,
   output: {
-    path: projectRoot + "/dist/css",
+    path: projectRoot + "/dist",
     filename: "style.js",
   },
   plugins: [new MiniCssExtractPlugin()],

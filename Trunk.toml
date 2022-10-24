@@ -8,7 +8,7 @@ public_url = "/inyew/"
 # "/{project_name}/" for {username}.github.io/{project_name}, "/" for {username}.github.io
 
 [watch]
-watch = [ "./index.html", "src/", "css/", "static/", ]
+watch = [ "index.html", "src/", "assets/css/", ]
 
 [clean]
 dist = "dist"
@@ -18,5 +18,5 @@ dist = "dist"
 command = "sh"
 stage = "pre_build"
 # run tailwind build with webpack
-command_arguments = [ "-c", "[ ! -d \"./node_modules\" ] && npm i || :; npm run build_css", ]
+command_arguments = [ "-c", "[ ! -d node_modules ] && npm i; npm run build_css", ]
 
