@@ -4,9 +4,9 @@ name = "inyew"
 version = "0.1.5"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-authors = ["MeiHui FAN <mhfan@ustc.edu>"]
+authors = [ "MeiHui FAN <mhfan@ustc.edu>" ]
 description = "Page for 24-Game/Puzzle/Challenge"
-#repository = "https://github.com/mhfan/inyew
+repository  = "https://github.com/mhfan/inyew"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -25,10 +25,10 @@ instant = { version = "0.1", features = [ "wasm-bindgen" ] }
 
 mexe = "0.2"
 rand = "0.8"
-inrust = { git = "https://github.com/mhfan/inrust", default-features = false, features = [ "ahash" ] }
+inrust = { git = "https://github.com/mhfan/inrust", default-features = false, features = [ "ahash" ] }  # "cc"
 
 [dependencies.getrandom]
-features = [ "js", ]
+features = [ "js" ]
 version  = "0.2"
 
 [dependencies.web-sys]

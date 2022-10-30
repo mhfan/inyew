@@ -216,11 +216,7 @@ impl Component for Game24 {
         Msg::Resize(e.target().unwrap()
             .dyn_into::<web_sys::HtmlSelectElement>().unwrap().value().parse::<u8>().unwrap()));
 
-    let resolve = link.callback(|_| Msg::Resolve);
-    let restore = link.callback(|_| Msg::Restore);
-    let refresh = link.callback(|_| Msg::Resize(0));
     //web_sys::window().map(|win| win.location().reload());
-
     // XXX: drag to exchange/replace?
 
     let num_editable = link.batch_callback(|e: MouseEvent|
@@ -262,20 +258,18 @@ impl Component for Game24 {
             2..=9 => num.to_string(), 10..=13 => court[(num - 10) as usize].to_owned(),
             _ => "?".to_owned() }, suits[sid as usize]);     //num  // TODO: */
 
-        html!{  // XXX: https://en.wikipedia.org/wiki/Playing_cards_in_Unicode
+        html! { // https://en.wikipedia.org/wiki/Playing_cards_in_Unicode
             <input type="text" value={ num.to_string() }
                 id={ format!("N{idx}") } readonly=true draggable="true"
                 placeholder="?" inputmode="numeric" pattern=r"-?\d+" maxlength="3" size="3"
-                class={ classes!(num_class, "rounded-full", "mx-2") } data-bs-toggle="tooltip"
-                title="Click to (un)check\nDouble click to input\nDrag over to exchange"/>
+                class={ classes!(num_class, "rounded-full", "mx-2") }/>
         }
     }).collect::<Html>();
 
-    let ops = [ "+", "-", "×", "÷" ].into_iter().map(|op| html!{
+    let ops = [ "+", "-", "×", "÷" ].into_iter().map(|op| html! {
         <div class="mx-6 my-4 inline-block">
             <input type="radio" id={ op } value={ op } name="ops" class="hidden peer"/>
-            <label for={ op } draggable="true" data-bs-toggle="tooltip"
-                title="Click to (un)check\nDrag over to replace/exchange"
+            <label for={ op } draggable="true"
                 class="px-4 py-2 bg-indigo-600 text-white text-3xl font-bold
                 hover:bg-indigo-400 peer-checked:outline-none peer-checked:ring-2
                 peer-checked:ring-indigo-500 peer-checked:ring-offset-2
@@ -288,20 +282,21 @@ impl Component for Game24 {
         focus:ring-4 focus:outline-none focus:ring-stone-300 shadow-lg shadow-stone-500/50
         dark:focus:ring-stone-800 dark:shadow-lg dark:shadow-stone-800/80";
 
-    let cnt_options = (4..=6).map(|n| html!{
+    let cnt_options = (4..=6).map(|n| html! {
         <option value={ n.to_string() } selected={ n == self.nums.len() }>{
             format!("{n} nums") }</option>
     }).collect::<Html>();
 
-    html!{ <main class="mt-auto mb-auto">
-        //<div id="play-cards"/>    // TODO:
+    html! { <main class="mt-auto mb-auto">
+        <div id="play-cards"/>    // TODO:
 
         <p class="hidden">{
             "Click on a operator and two numbers to form expression, " }<br/>{
             "repeat the process until all numbers are consumed, " }<br/>{
             "the final expression will be determined automatically." }<br/><br/></p>
 
-        <div id="ops-group" onchange={ ops_checked }>{ ops }</div>
+        <div id="ops-group" onchange={ ops_checked } data-bs-toggle="tooltip"
+            title="Click to (un)check\nDrag over to replace/exchange">{ ops }</div>
 
         <div id="expr-skel">
             /*<style>{ r"
@@ -310,15 +305,16 @@ impl Component for Game24 {
                 [contenteditable='true'].single-line  * { display: inline; white-space: nowrap; }
             " }</style>*/
 
-            <span id="nums-group" ref={ self.grp_elm.clone() }
+            <span id="nums-group" ref={ self.grp_elm.clone() } data-bs-toggle="tooltip"
+                title="Click to (un)check\nDouble click to input\nDrag over to exchange"
                 ondblclick={ num_editable.clone() } onchange={ num_changed.clone() }
                 onclick={ num_checked } onblur={ num_readonly.clone() }>{ nums }</span>
 
-            // data-bs-toggle="collapse" data-bs-target="#all-solutions" aria-expanded="false" aria-controls="all-solutions"
-            <button ondblclick={ resolve } ref={ self.eqm_elm.clone() } //text-white
-                class="px-4 py-2 m-4 text-3xl font-bold rounded-md
-                hover:outline-none hover:ring-2 hover:ring-indigo-400
-                focus:ring-indigo-500 focus:ring-offset-2"
+            // data-bs-toggle="collapse" data-bs-target="#all-solutions"
+            //       aria-expanded="false" aria-controls="all-solutions" //text-white
+            <button ondblclick={ link.callback(|_| Msg::Resolve) } ref={ self.eqm_elm.clone() }
+                class="px-4 py-2 m-4 text-3xl font-bold rounded-md hover:outline-none
+                hover:ring-2 hover:ring-indigo-400 focus:ring-indigo-500 focus:ring-offset-2"
                 data-bs-toggle="tooltip" title="Click to get solutions">{ "≠?" }</button>
 
             <input type="text" value={ self.goal.to_string() }
@@ -333,12 +329,13 @@ impl Component for Game24 {
              "Invalid integer number input, please correct it!" }</p> // invisible vs hidden
 
         <div id="ctrl-btns">
-            <input type="reset" value={ "Restore" } class={ classes!(ctrl_class) }
-                onclick={ restore } data-bs-toogle="tooltip" title="Click reset to initial"/>
+            <input type="reset" value="Restore" class={ classes!(ctrl_class) }
+                onclick={ link.callback(|_| Msg::Restore) }
+                data-bs-toogle="tooltip" title="Click reset to initial"/>
             <select class={ classes!(ctrl_class, "appearance-none") } onchange={ cnt_changed }
                 data-bs-toogle="tooltip" title="Click to select numbers count">{
                 cnt_options }</select>
-            <button class={ classes!(ctrl_class) } onclick={ refresh }
+            <button class={ classes!(ctrl_class) } onclick={ link.callback(|_| Msg::Resize(0)) }
                 data-bs-toogle="tooltip" title="Click to refresh new">{ "Refresh" }</button>
         </div>
 
@@ -349,8 +346,8 @@ impl Component for Game24 {
   }
 }
 
-#[function_component(GHcorner)] fn gh_corner() -> Html { html!{
-    <a href="https://github.com/mhfan/inyew"
+#[function_component(GHcorner)] fn gh_corner() -> Html { html! {
+    <a href={ env!("CARGO_PKG_REPOSITORY") }
         class="github-corner" aria-label="View source on GitHub">
         <svg width="60" height="60" viewBox="0 0 250 250" aria-hidden="true"
             style="fill:#ddd; color:#151513; position: absolute; top: 0; border: 0; right: 0;">
@@ -370,45 +367,51 @@ impl Component for Game24 {
                 fill="currentColor" class="octo-body"/>
         </svg>  // https://github.com/tholman/github-corners
         <style>{ ".github-corner:hover .octo-arm { animation: octocat-wave 560ms ease-in-out }
-            @keyframes octocat-wave { 0%,100% { transform: rotate(0) }
-                20%,60% { transform: rotate(-25deg) } 40%,80% { transform: rotate(10deg) } }
-            @media (max-width: 500px) { .github-corner:hover .octo-arm { animation: none }
-                .github-corner .octo-arm { animation: octocat-wave 560ms ease-in-out } }"
+            @keyframes octocat-wave {
+                0%,100% { transform: rotate(0) }
+                20%,60% { transform: rotate(-25deg) }
+                40%,80% { transform: rotate(10deg) }
+            }
+            @media (max-width: 500px) {
+                  .github-corner:hover .octo-arm { animation: none }
+                  .github-corner       .octo-arm { animation: octocat-wave 560ms ease-in-out }
+            }"
         }</style>
     </a> }
 }
 
 fn root_route(routes: &RootRoute) -> Html {
     #[allow(clippy::let_unit_value)] match routes {
-        RootRoute::Home  => html!{ <>
+        RootRoute::Home  => html! { <>
             //margin: 0 auto;   //class: justify-center;    // XXX: not working
-            <style>{ r"body { text-align: center; height: 100vh; }" }</style>
-                    // display: flex; flex-direction: column;
+            <style>{ r"html { background-color: #15191D; color: #DCDCDC; }
+                body { font-family: Courier, Monospace; text-align: center; height: 100vh; }"
+            }</style>   // display: flex; flex-direction: column;
 
-            <header><GHcorner/><br/><h1 class="text-4xl">
+            <header><GHcorner/><h1 class="text-4xl m-4">
                 <a href="https://github.com/mhfan/inrust">{ "'24' Challenge" }</a>
-            </h1><br/></header>
+            </h1></header>
 
             <Game24/>
-
             // https://css-tricks.com
             // https://www.w3schools.com
             // https://developer.mozilla.org/en-US/docs/Web/HTML
 
-            <footer><br/><p>{ "Copyright © 2022 " }  // &copy; // classe="absolute bottom-0"
-                <a href="https://github.com/mhfan">{ "mhfan" }</a></p><br/></footer>
+            <footer><p clase="m-4">{ "Copyright © 2022 " }  // &copy; // "absolute bottom-0"
+                <a href="https://github.com/mhfan">{ "mhfan" }</a>
                 //<div align="center">
                 //    <img src="https://page-views.glitch.me/badge?page_id=/24-puzzle"/></div>
+            </p></footer>
         </> },
 
-        RootRoute::Route => html!{ <Switch<Route> render={Switch::render(switch)} /> },
+        RootRoute::Route => html! { <Switch<Route> render={Switch::render(switch)} /> },
     }
 }
 
 fn switch(routes: &Route) -> Html {
     match routes {
-        Route::About => html!{ <p>{ "About" }</p> },
-        Route::NotFound => html!{ <p>{ "Not Found" }</p> },
+        Route::About => html! { <p>{ "About" }</p> },
+        Route::NotFound => html! { <p>{ "Not Found" }</p> },
     }
 }
 
@@ -423,16 +426,16 @@ fn switch(routes: &Route) -> Html {
 
 fn root_route(routes: &Route) -> Html {
     match routes {
-        RootRoute::Home => html!{ <p class="text-4xl">{ "Yew Template" }</p> },
-        RootRoute::About => html!{ <p>{ "About" }</p> },
-        RootRoute::NotFound => html!{ <p>{ "Not Found" }</p> },
+        RootRoute::Home  => html! { <p class="text-4xl">{ "Yew Template" }</p> },
+        RootRoute::About => html! { <p>{ "About" }</p> },
+        RootRoute::NotFound => html! { <p>{ "Not Found" }</p> },
     }
 }
 
 // =================================================================================== */
 
 #[function_component(App)] fn app() -> Html {   // main root
-    html!{
+    html! {
         /********************************************************
          **    basename is not supported on yew 0.19.0 yet.    **
         <BrowserRouter basename="/inyew/">
