@@ -33,7 +33,8 @@ features = [ "js" ]
 version  = "0.2"
 
 [dependencies.web-sys]
-features = [ "HtmlInputElement", "HtmlSelectElement", "HtmlCollection", "DomTokenList", ]
+features = [ "HtmlInputElement", "HtmlFieldSetElement", "HtmlSelectElement",
+    "HtmlCollection", "DomTokenList", ]
 version  = "0.3"
 
 [profile.dev]

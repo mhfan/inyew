@@ -16,7 +16,7 @@ use yew_router::prelude::*;
 }
 
 use std::collections::VecDeque;
-use web_sys::{HtmlElement, HtmlInputElement};
+use web_sys::{HtmlElement, HtmlInputElement, HtmlFieldSetElement};
 use wasm_bindgen::JsCast;
 use inrust::calc24::*;
 use instant::Instant;
@@ -32,8 +32,9 @@ struct Game24 {
     tnow: Instant,
 
     sol_elm: NodeRef,
-    grp_elm: NodeRef,
     eqm_elm: NodeRef,
+    grp_opd: NodeRef,
+    grp_opr: NodeRef,
 
     opr_elm:   Option<HtmlInputElement>,
     opd_elq: VecDeque<HtmlInputElement>,
@@ -43,8 +44,9 @@ impl Game24 {
     fn new() -> Self {
         let mut game = Self { goal: 24.into(), nums: vec![],
             deck: (0..52).collect(), spos: 0, ncnt: 1, tnow: Instant::now(),
-            sol_elm: NodeRef::default(), grp_elm: NodeRef::default(),
-            eqm_elm: NodeRef::default(), opr_elm: None, opd_elq: VecDeque::new(),
+            sol_elm: NodeRef::default(), eqm_elm: NodeRef::default(),
+            grp_opd: NodeRef::default(), grp_opr: NodeRef::default(),
+            opr_elm: None, opd_elq: VecDeque::new(),
         };  game.dealer(4);     game
     }
 
@@ -73,6 +75,8 @@ impl Game24 {
             let str = str.chars().map(|ch|
                 match ch { '×' => '*', '÷' => '/', _ => ch }).collect::<String>();
             let eqm_elm = self.eqm_elm.cast::<HtmlElement>().unwrap();
+            //opr.parent_element().unwrap().parent_element().unwrap()
+            self.grp_opr.cast::<HtmlFieldSetElement>().unwrap().set_disabled(true);
 
             if Rational::from((mexe::eval(str).unwrap()
                 + 0.1) as i32) == self.goal {
@@ -93,7 +97,8 @@ impl Game24 {
         opd.clear();    opr.set_checked(false);     self.opr_elm = None;
     }
 
-    fn clear_state(&mut self) {     //log::info!("clear state");
+    fn clear_state(&mut self) {     //log::debug!("clear state");
+        self.grp_opr.cast::<HtmlFieldSetElement>().unwrap().set_disabled(false);
         self.opd_elq.iter().for_each(|el| Self::toggle_hl(el, false));
         self.opd_elq.clear();   self.opr_elm = None;    self.ncnt = 1;
 
@@ -104,7 +109,7 @@ impl Game24 {
         eqm_elm.set_inner_text("≠?");
 
         self.sol_elm.cast::<HtmlElement>().unwrap().set_inner_text("");
-        let coll = self.grp_elm.cast::<HtmlElement>().unwrap().children();
+        let coll = self.grp_opd.cast::<HtmlElement>().unwrap().children();
         //let coll = web_sys::window().unwrap().document().unwrap()
         //    .get_element_by_id("nums-group").unwrap().children();
 
@@ -113,7 +118,7 @@ impl Game24 {
                 .dyn_into::<HtmlInputElement>().unwrap();
             if (self.nums.len() as u32 - 1) < i { inp.set_hidden(true); continue }
             inp.set_max_length(3);  inp.set_size(3);    inp.set_hidden(false);
-        }   //log::info!("clear state");
+        }
     }
 
     fn toggle_hl(el: &HtmlInputElement, hl: bool) {
@@ -147,8 +152,8 @@ impl Component for Game24 {
                 if  self.opd_elq.len() == 2 { self.form_expr(); }   false
             }
 
-            Msg::Operands(inp) => {
-                if  self.ncnt == self.nums.len() { return false }
+            Msg::Operands(inp) =>
+            if self.ncnt == self.nums.len() { false } else {
                 let opd = &mut self.opd_elq;
                 let mut idx = opd.len();
 
@@ -171,7 +176,7 @@ impl Component for Game24 {
                 inp.get_attribute("id").unwrap().starts_with("N")*/
                 //let end = inp.value().len() as u32;
                 //inp.set_selection_range(end, end).unwrap();
-                inp.set_read_only(false);   true
+                inp.set_read_only(false);   false
             }
 
             Msg::Resize(n) => if 9 < n {
@@ -277,7 +282,8 @@ impl Component for Game24 {
             "repeat the process until all numbers are consumed, " }<br/>{
             "the final expression will be determined automatically." }<br/><br/></p>
 
-        <div id="ops-group" onchange={ ops_checked } data-bs-toggle="tooltip"
+        <fieldset id="ops-group" ref={ self.grp_opr.clone() }
+            onchange={ ops_checked } data-bs-toggle="tooltip"
             title="Click to (un)check\nDrag over to replace/exchange">{
             [ "+", "-", "×", "÷" ].into_iter().map(|op| html! {
                 <div class="mx-6 my-4 inline-block">
@@ -291,10 +297,10 @@ impl Component for Game24 {
                         peer-checked:bg-transparent rounded-md shadow-xl">{ op }</label>
                 </div>
             }).collect::<Html>()
-        }</div>
+        }</fieldset>
 
         <div id="expr-skel">
-            <span id="nums-group" ref={ self.grp_elm.clone() } data-bs-toggle="tooltip"
+            <span id="nums-group" ref={ self.grp_opd.clone() } data-bs-toggle="tooltip"
                 title="Click to (un)check\nDouble click to input\nDrag over to exchange"
                 ondblclick={ num_editable.clone() } onclick={ num_checked }
                 onblur={ num_changed.clone() }>{ nums }</span>
