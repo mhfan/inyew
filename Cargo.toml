@@ -46,4 +46,5 @@ opt-level = "s"
 lto = true
 
 [workspace]
+members = [ "src-tauri" ]
 
