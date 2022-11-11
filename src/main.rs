@@ -149,6 +149,7 @@ impl Component for Game24 {
     fn update  (&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::Operator(inp) => { self.opr_elm = Some(inp);
+            //if !inp.checked() { log::debug!("unchecked"); false } else
                 if  self.opd_elq.len() == 2 { self.form_expr(); }   false
             }
 
@@ -163,11 +164,9 @@ impl Component for Game24 {
                     if  idx < opd.len() { opd.remove(idx); }
                             Self::toggle_hl(&inp, false);
                 } else {    Self::toggle_hl(&inp, true);
-
-                    if  opd.len() == 2 {
-                        Self::toggle_hl(&opd.pop_front().unwrap(), false);
-                    }   opd.push_back(inp);
-                    if  opd.len() == 2 && self.opr_elm != None { self.form_expr(); }
+                    opd.push_back(inp);     let len = opd.len();
+                    if 2 < len { Self::toggle_hl(&opd.pop_front().unwrap(), false); }
+                    if 1 < len && self.opr_elm != None { self.form_expr(); }
                 }   false
             }
 
@@ -179,9 +178,7 @@ impl Component for Game24 {
                 inp.set_read_only(false);   false
             }
 
-            Msg::Resize(n) => if 9 < n {
-                log::error!("too big to support: {}", n);   false
-            } else {
+            Msg::Resize(n) => {     debug_assert!(n < 10, "too big to solve!");
                 self.dealer(if 0 < n { n as usize } else { self.nums.len() });
                 self.clear_state();     true
             }
@@ -189,9 +186,8 @@ impl Component for Game24 {
             Msg::Restore => { self.clear_state();   true }
             Msg::Update(idx, val) => {
                 if let Some(idx) = idx {    let idx = idx as usize;
-                    if  idx < self.nums.len() { self.nums[idx] = val; } else {
-                        log::error!("index overflow: {}", idx);
-                    }
+                    debug_assert!(idx < self.nums.len(), "index overflow");
+                    self.nums[idx] = val;
                 } else { self.goal = val; }     false
             }
 
@@ -283,6 +279,10 @@ impl Component for Game24 {
             "the final expression will be determined automatically." }<br/><br/></p>
 
         <fieldset id="ops-group" ref={ self.grp_opr.clone() }
+            /*onclick={ Callback::from(|e: MouseEvent|
+                e.target().and_then(|t| t.dyn_into::<HtmlInputElement>().ok().map(|inp|
+                    if inp.checked() { log::debug!("dechecked");
+                       inp.set_checked(false) })).unwrap())} */
             onchange={ ops_checked } data-bs-toggle="tooltip"
             title="Click to (un)check\nDrag over to replace/exchange">{
             [ "+", "-", "×", "÷" ].into_iter().map(|op| html! {
