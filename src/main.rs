@@ -1,16 +1,16 @@
+
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-// ===================================================================================
-// for {username}.github.io/{repo_name}
-// replace 'yew-template-for-github.io' to your repo name
+// for {username}.github.io/{repo_name}, replace 'inyew' to your repo name
+// XXX: remove all "/inyew" for {username}.github.io
 
 #[derive(Clone, Routable, PartialEq)] enum RootRoute {
     #[at("/inyew/")] Home,
-    #[at("/inyew/:s")] Route,
+    #[at("/inyew/:s")] Subs,
 }
 
-#[derive(Clone, Routable, PartialEq)] enum Route {
+#[derive(Clone, Routable, PartialEq)] enum SubRoute {
     #[at("/inyew/about")] About,
     #[at("/inyew/404")] #[not_found] NotFound,
 }
@@ -409,46 +409,22 @@ fn root_route(routes: &RootRoute) -> Html {
             </p></footer>
         </> },
 
-        RootRoute::Route => html! { <Switch<Route> render={Switch::render(switch)} /> },
+        RootRoute::Subs => html! { <Switch<SubRoute> render={ Switch::render(switch) }/> },
     }
 }
 
-fn switch(routes: &Route) -> Html {
+fn switch(routes: &SubRoute) -> Html {
     match routes {
-        Route::About => html! { <p>{ "About" }</p> },
-        Route::NotFound => html! { <p>{ "Not Found" }</p> },
+        SubRoute::About => html! { <p>{ "About" }</p> },
+        SubRoute::NotFound => html! { <p>{ "Not Found" }</p> },
     }
 }
-
-/* ===================================================================================
-// for {username}.github.io
-
-#[derive(Clone, Routable, PartialEq)] enum RootRoute {
-    #[at("/")] Home,
-    #[at("/about")] About,
-    #[at("/404")] #[not_found] NotFound,
-}
-
-fn root_route(routes: &Route) -> Html {
-    match routes {
-        RootRoute::Home  => html! { <p class="text-4xl">{ "Yew Template" }</p> },
-        RootRoute::About => html! { <p>{ "About" }</p> },
-        RootRoute::NotFound => html! { <p>{ "Not Found" }</p> },
-    }
-}
-
-// =================================================================================== */
 
 #[function_component(App)] fn app() -> Html {   // main root
-    html! {
-        /********************************************************
-         **    basename is not supported on yew 0.19.0 yet.    **
-        <BrowserRouter basename="/inyew/">
-            <Switch<Route> render={Switch::render(switch)} />
-        </BrowserRouter>
-        // ******************************************************/
+    html! {     // XXX: basename is not supported on yew-route 0.16 yet?
+        //<BrowserRouter basename="/inyew/">  // OR <base href="/inyew/"> in index.html
         <BrowserRouter>
-            <Switch<RootRoute> render={Switch::render(root_route)} />
+            <Switch<RootRoute> render={ Switch::render(root_route) }/>
         </BrowserRouter>
     }
 }
