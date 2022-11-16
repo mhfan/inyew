@@ -18,7 +18,7 @@ function findAllRsExtensions(dir) {
 module.exports = {
   content: findAllRsExtensions("./src"),
   theme: {
-    //extend: {},
+    //extend: { data: { checked: true } },
     container: {
       center: true,
     }

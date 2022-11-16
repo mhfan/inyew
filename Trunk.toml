@@ -18,7 +18,8 @@ dist = "dist"
 command = "sh"
 stage = "pre_build"
 # run tailwind build with webpack
-command_arguments = [ "-c", "[ ! -d node_modules ] && npm i; npm run build_css", ]
+#command_arguments = [ "-c", "npm run build_css_webpack", ]
+command_arguments = [ "-c", "npm run build_css", ]
 
 #[serve]
 #address = "0.0.0.0"

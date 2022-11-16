@@ -64,12 +64,15 @@ impl Game24 {
     }
 
     fn form_expr(&mut self) {
-        let opr = self.opr_elm.as_ref().unwrap();
         let opd = &mut self.opd_elq;
+        let opr = self.opr_elm.as_ref().unwrap();
         let str = format!("({} {} {})", opd[0].value(), opr.value(), opd[1].value());
 
-        opd[1].set_size (str.len() as u32);     opd[1].set_max_length(str.len() as i32);
-        opd[1].set_value(&str);     opd[1].blur().unwrap();     opd[0].set_hidden(true);
+        opd[1].set_size(str.len() as u32);  opd[1].set_value(&str);
+        opd[1].blur().unwrap();             opd[0].set_hidden(true);
+
+        opd.iter().for_each(|elm| Self::set_checked(elm, false));
+        opd.clear();    opr.set_checked(false);     self.opr_elm = None;
 
         self.ncnt += 1; if self.ncnt == self.nums.len() {
             let str = str.chars().map(|ch|
@@ -83,29 +86,21 @@ impl Game24 {
                 let dur = self.tnow.elapsed();  self.tnow = Instant::now();
                 log::info!("timing: {:.1}s", dur.as_secs_f32());    // TODO: show it on page
 
-                eqm_elm.class_list().add_3("ring-2", "text-lime-500",
-                    "ring-lime-400").unwrap();
-                eqm_elm.set_inner_text("=");
-            } else {    // XXX:
-                eqm_elm.class_list().add_3("ring-2", "text-red-500",
-                    "ring-red-400").unwrap();
-                eqm_elm.set_inner_text("≠");
+                Self::set_checked(&eqm_elm, true);
+                        eqm_elm.set_inner_text("=");
+            } else {    eqm_elm.set_inner_text("≠");
+                eqm_elm.set_attribute("aria-checked", "false").unwrap();
             }
         }
-
-        opd.iter().for_each(|el| Self::toggle_hl(el, false));
-        opd.clear();    opr.set_checked(false);     self.opr_elm = None;
     }
 
     fn clear_state(&mut self) {     //log::debug!("clear state");
         self.grp_opr.cast::<HtmlFieldSetElement>().unwrap().set_disabled(false);
-        self.opd_elq.iter().for_each(|el| Self::toggle_hl(el, false));
+        self.opd_elq.iter().for_each(|elm| Self::set_checked(elm, false));
         self.opd_elq.clear();   self.opr_elm = None;    self.ncnt = 1;
 
         let  eqm_elm = self.eqm_elm.cast::<HtmlElement>().unwrap();
-        eqm_elm.class_list().remove_5("ring-red-400",   // XXX: better ideas?
-            "text-red-500", "text-lime-500",
-            "ring-lime-400", "ring-2").unwrap();
+        Self::set_checked(&eqm_elm, false);     // XXX: "mixed"
         eqm_elm.set_inner_text("≠?");
 
         self.sol_elm.cast::<HtmlElement>().unwrap().set_inner_text("");
@@ -117,16 +112,13 @@ impl Game24 {
             let inp = coll.item(i).unwrap()
                 .dyn_into::<HtmlInputElement>().unwrap();
             if (self.nums.len() as u32 - 1) < i { inp.set_hidden(true); continue }
-            inp.set_max_length(3);  inp.set_size(3);    inp.set_hidden(false);
+            inp.set_size(3);    inp.set_hidden(false);
         }
     }
 
-    fn toggle_hl(el: &HtmlInputElement, hl: bool) {
-        if hl {
-            el.class_list().add_2("ring", "ring-purple-600").unwrap();
-        } else {    // XXX:
-            el.class_list().remove_2("ring", "ring-purple-600").unwrap();
-        }
+    fn set_checked(elm: &HtmlElement, checked: bool) {
+        if checked { elm.   set_attribute("aria-checked", "true").unwrap();
+        } else {     elm.remove_attribute("aria-checked").unwrap(); }
     }
 }
 
@@ -136,7 +128,7 @@ enum Msg {
     Editable(HtmlInputElement),
     Update(Option<u8>, Rational),
     Resize(u8),
-    Restore,
+    Dismiss,
     Resolve,
 }
 
@@ -146,66 +138,68 @@ impl Component for Game24 {
 
     fn create(_ctx: &Context<Self>) -> Self { Self::new() }
 
-    fn update  (&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::Operator(inp) => { self.opr_elm = Some(inp);
-            //if !inp.checked() { log::debug!("unchecked"); false } else
-                if  self.opd_elq.len() == 2 { self.form_expr(); }   false
+            Msg::Operator(inp) => { //log::debug!("{}", inp.checked());
+                /*if  inp.is_same_node(self.opr_elm.as_ref().map(|elm|
+                    elm.as_ref())) { inp.set_checked(false);
+                    self.opr_elm = None; return false;
+                }*/ self.opr_elm = Some(inp);
+                if  self.opd_elq.len() == 2 { self.form_expr(); }
             }
 
-            Msg::Operands(inp) =>
-            if self.ncnt == self.nums.len() { false } else {
+            Msg::Operands(inp) => if self.ncnt != self.nums.len() {
                 let opd = &mut self.opd_elq;
                 let mut idx = opd.len();
 
-                if  opd.iter().enumerate().any(|(i, el)| {
-                        let dup = el.is_same_node(Some(inp.as_ref()));
+                if  opd.iter().enumerate().any(|(i, elm)| {
+                        let dup = elm.is_same_node(Some(inp.as_ref()));
                         if  dup { idx = i; }  dup }) {
                     if  idx < opd.len() { opd.remove(idx); }
-                            Self::toggle_hl(&inp, false);
-                } else {    Self::toggle_hl(&inp, true);
+                            Self::set_checked(&inp, false);
+                } else {    Self::set_checked(&inp, true);
+
                     opd.push_back(inp);     let len = opd.len();
-                    if 2 < len { Self::toggle_hl(&opd.pop_front().unwrap(), false); }
+                    if 2 < len { Self::set_checked(&opd.pop_front().unwrap(), false); }
                     if 1 < len && self.opr_elm != None { self.form_expr(); }
-                }   false
+                }
             }
 
-            Msg::Editable(inp) => if 1 < self.ncnt { false } else {
+            Msg::Editable(inp) => if 1 == self.ncnt {
                 /* && self.ncnt < self.nums.len() &&
-                inp.get_attribute("id").unwrap().starts_with("N")*/
+                    inp.get_attribute("id").unwrap().starts_with("N")*/
                 //let end = inp.value().len() as u32;
                 //inp.set_selection_range(end, end).unwrap();
-                inp.set_read_only(false);   false
+                inp.set_read_only(false);
             }
 
             Msg::Resize(n) => {     debug_assert!(n < 10, "too big to solve!");
                 self.dealer(if 0 < n { n as usize } else { self.nums.len() });
-                self.clear_state();     true
+                self.clear_state();     return true
             }
 
-            Msg::Restore => { self.clear_state();   true }
+            Msg::Dismiss => { self.clear_state();   return true }
             Msg::Update(idx, val) => {
                 if let Some(idx) = idx {    let idx = idx as usize;
                     debug_assert!(idx < self.nums.len(), "index overflow");
                     self.nums[idx] = val;
-                } else { self.goal = val; }     false
+                } else { self.goal = val; }
             }
 
             Msg::Resolve => {
                 let sols = calc24_coll(&self.goal, &self.nums, DynProg);
-                let cnt = sols.len();
+                let cnt  = sols.len();
 
-                let mut sols = sols.into_iter().map(|str| {
-                    let mut str = str.chars().map(|ch| match ch {
-                        '*' => '×', '/' => '÷', _ => ch }).collect::<String>();
-                    str.push_str("<br/>");  str
-                }).collect::<Vec<_>>().concat();
+                let sols = sols.into_iter().map(|str| str.chars().map(|ch|
+                        match ch { '*' => '×', '/' => '÷', _ => ch })
+                    .chain("<br/>".chars()).collect())
+                    .chain(std::iter::once_with(|| if 5 < cnt {
+                        format!("<br/><em>{cnt}</em> solutions in total<br/>")
+                    } else { String::new() })).collect::<String>();
 
-                if 5 < cnt {
-                    sols.push_str(&format!("<br/>{cnt} solutions in total<br/>"));
-                }   self.sol_elm.cast::<HtmlElement>().unwrap().set_inner_html(&sols);  false
+                self.sol_elm.cast::<HtmlElement>().unwrap().set_inner_html(&sols);
             }
-        }
+        }   false
     }
 
     //fn changed (&mut self, ctx: &Context<Self>) -> bool { true }
@@ -230,6 +224,7 @@ impl Component for Game24 {
 
     let num_editable = link.batch_callback(|e: MouseEvent|
         e.target().unwrap().dyn_into::<HtmlInputElement>().ok().map(Msg::Editable));
+        //e.prevent_default();  // prevent dblclick from selection?
 
     let num_changed = link.batch_callback(|e: FocusEvent| {
         let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
@@ -238,7 +233,7 @@ impl Component for Game24 {
         if  inp.check_validity() {   inp.set_read_only(true);
             Some(Msg::Update(inp.get_attribute("id").unwrap().get(1..).unwrap()
                 .parse::<u8>().ok(), inp.value().parse::<Rational>().unwrap()))
-        } else { inp.focus().unwrap();   inp.select();  None }
+        } else { if inp.focus().is_ok() { inp.select() }    None }
     });
 
     let num_class = "px-4 py-2 my-4 w-fit appearance-none select-text
@@ -258,10 +253,11 @@ impl Component for Game24 {
             _ => "?".to_owned() }, suits[sid as usize]);     //num  // TODO: */
 
         html! { // https://en.wikipedia.org/wiki/Playing_cards_in_Unicode
-            <input type="text" value={ num.to_string() } id={ format!("N{idx}") }
-                maxlength="3" size="3" readonly=true draggable="true"
-                placeholder="?" inputmode="numeric" pattern=r"-?\d+(\/\d+)?"
-                class={ classes!(num_class, "rounded-full", "mx-2") }/>
+            <input type="text" id={ format!("N{idx}") } name="nums"
+                maxlength="6" value={ num.to_string() } readonly=true draggable="true"
+                size="3" placeholder="?" inputmode="numeric" pattern=r"-?\d+(\/\d+)?"
+                class={ classes!(num_class, "aria-checked:ring-purple-600",
+                    "aria-checked:ring", "rounded-full", "mx-2") }/>
         }       // https://regexr.com
     }).collect::<Html>();
 
@@ -270,6 +266,7 @@ impl Component for Game24 {
         focus:ring-4 focus:outline-none focus:ring-stone-300 shadow-lg shadow-stone-500/50
         dark:focus:ring-stone-800 dark:shadow-lg dark:shadow-stone-800/80";
 
+    //let resolve = use_state_eq(|| false);     // XXX:
     html! { <main class="mt-auto mb-auto">
         <div id="play-cards"/>    // TODO:
 
@@ -279,15 +276,11 @@ impl Component for Game24 {
             "the final expression will be determined automatically." }<br/><br/></p>
 
         <fieldset id="ops-group" ref={ self.grp_opr.clone() }
-            /*onclick={ Callback::from(|e: MouseEvent|
-                e.target().and_then(|t| t.dyn_into::<HtmlInputElement>().ok().map(|inp|
-                    if inp.checked() { log::debug!("dechecked");
-                       inp.set_checked(false) })).unwrap())} */
             onchange={ ops_checked } data-bs-toggle="tooltip"
             title="Click to (un)check\nDrag over to replace/exchange">{
             [ "+", "-", "×", "÷" ].into_iter().map(|op| html! {
                 <div class="mx-6 my-4 inline-block">
-                    <input type="radio" id={ op } value={ op } name="ops"
+                    <input type="radio" name="ops" id={ op } value={ op }
                         class="hidden peer"/>   // require value='xxx', default is 'on'
 
                     <label for={ op } draggable="true"
@@ -302,20 +295,23 @@ impl Component for Game24 {
         <div id="expr-skel">
             <span id="nums-group" ref={ self.grp_opd.clone() } data-bs-toggle="tooltip"
                 title="Click to (un)check\nDouble click to input\nDrag over to exchange"
-                ondblclick={ num_editable.clone() } onclick={ num_checked }
-                onblur={ num_changed.clone() }>{ nums }</span>
+                ondblclick={ num_editable.clone() } onblur={ num_changed.clone() }
+                onclick={ num_checked }>{ nums }</span>
 
             // data-bs-toggle="collapse" data-bs-target="#all-solutions"
             //       aria-expanded="false" aria-controls="all-solutions" //text-white
             <button ondblclick={ link.callback(|_| Msg::Resolve) } ref={ self.eqm_elm.clone() }
-                class="px-4 py-2 m-4 text-3xl font-bold rounded-md hover:outline-none
-                hover:ring-2 hover:ring-indigo-400 focus:ring-indigo-500 focus:ring-offset-2"
+                class="px-4 py-2 m-4 text-3xl font-bold rounded-md aria-[checked=false]:ring-2
+                aria-checked:ring-2 aria-checked:text-lime-500 aria-checked:ring-lime-400
+                aria-[checked=false]:text-red-500 aria-[checked=false]:ring-red-400
+                hover:outline-none hover:ring-2 hover:ring-indigo-400
+                focus:ring-indigo-500 focus:ring-offset-2"
                 data-bs-toggle="tooltip" title="Double click to get solutions">{ "≠?" }</button>
 
             <input type="text" id="G" value={ self.goal.to_string() } readonly=true
                 ondblclick={ num_editable } onblur={ num_changed }
                 placeholder="??" inputmode="numeric" pattern=r"-?\d+(\/\d+)?"
-                maxlength="4" size="4" class={ classes!(num_class, "rounded-md") }
+                maxlength="8" size="4" class={ classes!(num_class, "rounded-md") }
                 data-bs-toggle="tooltip" title="Double click to input new goal"/>
 
             /*<style>{ r"
@@ -329,15 +325,14 @@ impl Component for Game24 {
              "Invalid integer number input, please correct it!" }</p> // invisible vs hidden
 
         <div id="ctrl-btns">
-            <input type="reset" value="Restore" class={ classes!(ctrl_class) }
-                onclick={ link.callback(|_| Msg::Restore) }
-                data-bs-toogle="tooltip" title="Click reset to initial"/>
+            <input type="reset" value="Dismiss" class={ classes!(ctrl_class) }
+                onclick={ link.callback(|_| Msg::Dismiss) }
+                data-bs-toogle="tooltip" title="Click to dismiss expr."/>
 
             <select class={ classes!(ctrl_class, "appearance-none") } onchange={ cnt_changed }
                 data-bs-toogle="tooltip" title="Click to select numbers count">{
-                (4..=6).map(|n| html! {
-                    <option value={ n.to_string() } selected={ n == self.nums.len() }>{
-                        format!("{n} nums") }</option>
+                (4..=6).map(|n| html! { <option value={ n.to_string() }
+                    selected={ n == self.nums.len() }>{ format!("{n} nums") }</option>
                 }).collect::<Html>()
             }</select>
             <button class={ classes!(ctrl_class) } onclick={ link.callback(|_| Msg::Resize(0)) }
@@ -402,7 +397,7 @@ fn root_route(routes: &RootRoute) -> Html {
             // https://www.w3schools.com
             // https://developer.mozilla.org/en-US/docs/Web/HTML
 
-            <footer><p clase="m-4">{ "Copyright © 2022 " }  // &copy; // "absolute bottom-0"
+            <footer><p clase="m-4">{ "Copyright © 2022 by " }  // &copy; // "absolute bottom-0"
                 <a href="https://github.com/mhfan">{ "mhfan" }</a>
                 //<div align="center">
                 //    <img src="https://page-views.glitch.me/badge?page_id=/24-puzzle"/></div>
@@ -415,7 +410,7 @@ fn root_route(routes: &RootRoute) -> Html {
 
 fn switch(routes: &SubRoute) -> Html {
     match routes {
-        SubRoute::About => html! { <p>{ "About" }</p> },
+        SubRoute::About    => html! { <p>{ "About" }</p> },
         SubRoute::NotFound => html! { <p>{ "Not Found" }</p> },
     }
 }
