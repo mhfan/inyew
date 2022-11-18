@@ -43,6 +43,7 @@ incremental = true
 [profile.release]
 codegen-units = 1
 opt-level = "s"
+strip = true
 lto = true
 
 [workspace]
