@@ -80,8 +80,7 @@ impl Game24 {
             //    .dyn_into::<HtmlFieldSetElement>().unwrap().set_disabled(true);
             self.grp_opr.cast::<HtmlFieldSetElement>().unwrap().set_disabled(true);
 
-            // XXX: works for integer goal only
-            if Rational::from((mexe::eval(str).unwrap() + 0.1) as i32) == self.goal {
+            if str.parse::<Expr>().unwrap().value() == &self.goal {
                 let dur = self.tnow.elapsed();  self.tnow = Instant::now();
                 log::info!("timing: {:.1}s", dur.as_secs_f32());    // TODO: show it on page
 

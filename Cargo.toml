@@ -13,18 +13,18 @@ homepage = "https://mhfan.github.io/inyew"
 
 [dependencies]
 yew = "0.19"
-yew-router = "0.16"
+yew-router = "0.16" #git = "https://github.com/yewstack/yew"
 #reqwasm = "0.5"
 #serde = "1.0"
 #gloo = "0.8"
+#gloo-utils = "0.1"
 
-log  = "0.4"
 wasm-logger  = "0.2"
 wasm-bindgen = "0.2"
 instant = { version = "0.1", features = [ "wasm-bindgen" ] }
 #js-sys = "0.3"
+log  = "0.4"
 
-mexe = "0.2"
 rand = "0.8"
 inrust = { git = "https://github.com/mhfan/inrust", default-features = false, features = [ "ahash" ] }  # "cc"
 
