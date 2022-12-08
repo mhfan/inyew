@@ -43,7 +43,7 @@ incremental = true
 [profile.release]
 codegen-units = 1
 opt-level = "s"
-strip = true
+#strip = true   # XXX: why not working for wasm?
 lto = true
 
 [workspace]
