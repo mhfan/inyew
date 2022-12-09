@@ -2,19 +2,6 @@
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-// for {username}.github.io/{repo_name}, replace 'inyew' to your repo name
-// XXX: remove all "/inyew" for {username}.github.io
-
-#[derive(Clone, Routable, PartialEq)] enum RootRoute {
-    #[at("/inyew/")] Home,
-    #[at("/inyew/:s")] Subs,
-}
-
-#[derive(Clone, Routable, PartialEq)] enum SubRoute {
-    #[at("/inyew/about")] About,
-    #[at("/inyew/404")] #[not_found] NotFound,
-}
-
 use std::collections::VecDeque;
 use web_sys::{HtmlElement, HtmlInputElement, HtmlFieldSetElement};
 use wasm_bindgen::JsCast;
@@ -288,7 +275,7 @@ impl Component for Game24State {
         <div id="expr-skel">
             <span id="nums-group" ref={ self.grp_opd.clone() } data-bs-toggle="tooltip"
                 title="Click to (un)check\nDouble click to input\nDrag over to exchange"
-                ondblclick={ num_editable.clone() } onblur={ num_changed.clone() }
+                ondblclick={ num_editable.clone() } onfocusout={ num_changed.clone() }
                 onclick={ link.batch_callback(|e: MouseEvent| e.target().and_then(|t|
                     t.dyn_into().ok().map(Msg::Operands))) }>{ nums }</span>
 
@@ -347,15 +334,20 @@ impl Component for Game24State {
   }
 }
 
-fn root_route(routes: &RootRoute) -> Html {
+fn root_route(routes: RootRoute) -> Html {
     #[function_component(GHcorner)] fn gh_corner() -> Html {
-        let elm = web_sys::window().unwrap().document().unwrap()
+        /*let elm = web_sys::window().unwrap().document().unwrap()
             .create_element("a").unwrap();
         elm.set_class_name("github-corner");
         elm.set_attribute("href",  env!("CARGO_PKG_REPOSITORY")).unwrap();
         elm.set_attribute("aria-label", "View source on GitHub").unwrap();
         elm.set_inner_html(include_str!("../assets/gh-corner.html"));
-        Html::VRef(elm.into())
+        Html::VRef(elm.into()) */
+
+        html! { <a href={ env!("CARGO_PKG_REPOSITORY") }
+            class="github-corner" aria-label="View source on GitHub">{
+            Html::from_html_unchecked(include_str!("../assets/gh-corner.html").into())
+        }</a> }
     }
 
     #[allow(clippy::let_unit_value)] match routes {
@@ -382,27 +374,39 @@ fn root_route(routes: &RootRoute) -> Html {
             </footer>
         </> },
 
-        RootRoute::Subs => html! { <Switch<SubRoute> render={ Switch::render(switch) }/> },
+        RootRoute::Subs => html! { <Switch<SubRoute> render={ switch }/> },
     }
 }
 
-fn switch(routes: &SubRoute) -> Html {
+fn switch(routes: SubRoute) -> Html {
     match routes {
         SubRoute::About    => html! { <p>{ "About" }</p> },
         SubRoute::NotFound => html! { <p>{ "Not Found" }</p> },
     }
 }
 
-#[function_component(App)] fn app() -> Html {   // main root
-    html! {     // XXX: basename is not supported on yew-route 0.16 yet?
-        //<BrowserRouter basename="/inyew/">  // OR <base href="/inyew/"> in index.html
-        <BrowserRouter>
-            <Switch<RootRoute> render={ Switch::render(root_route) }/>
+// for {username}.github.io/{repo_name}, replace 'inyew' to your repo name
+// XXX: remove all "/inyew" for {username}.github.io
+
+#[derive(Clone, Routable, PartialEq)] enum RootRoute {
+    #[at("/")] Home,
+    #[at("/:s")] Subs,
+}
+
+#[derive(Clone, Routable, PartialEq)] enum SubRoute {
+    #[at("/about")] About,
+    #[at("/404")] #[not_found] NotFound,
+}
+
+#[function_component(Game24App)] fn game24app() -> Html {   // main root
+    html! {
+        <BrowserRouter basename="/inyew/">  // OR <base href="/inyew/"> in index.html?
+            <Switch<RootRoute> render={ root_route }/>
         </BrowserRouter>
     }
 }
 
 fn main() {     // entry point
     wasm_logger::init(wasm_logger::Config::default()); //log::info!("Update: {:?}", msg);
-    yew::start_app::<App>();
+    yew::Renderer::<Game24App>::new().render();
 }
