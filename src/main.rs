@@ -21,7 +21,7 @@ use wasm_bindgen::JsCast;
 use inrust::calc24::*;
 use instant::Instant;
 
-struct Game24 {
+struct Game24State {
     goal: Rational,
     nums: Vec<Rational>,
 
@@ -40,7 +40,7 @@ struct Game24 {
     opd_elq: VecDeque<HtmlInputElement>,
 }
 
-impl Game24 {
+impl Game24State {
     fn new() -> Self {
         let mut game24 = Self { goal: 24.into(), nums: vec![],
             deck: (0..52).collect(), spos: 0, ncnt: 1, tnow: Instant::now(),
@@ -129,7 +129,7 @@ enum Msg {
     Resolve,
 }
 
-impl Component for Game24 {
+impl Component for Game24State {
     type Properties = ();
     type Message = Msg;
 
@@ -359,7 +359,7 @@ fn root_route(routes: &RootRoute) -> Html {
                 <a href="https://github.com/mhfan/inrust">{ "'24' Challenge" }</a>
             </header>
 
-            <Game24/>
+            <Game24State/>
             // https://css-tricks.com
             // https://www.w3schools.com
             // https://developer.mozilla.org/en-US/docs/Web/HTML
