@@ -35,6 +35,7 @@ struct Game24State {
     eqm_elm: NodeRef,
     grp_opd: NodeRef,
     grp_opr: NodeRef,
+    tmr_elm: NodeRef,
 
     opr_elm:   Option<HtmlInputElement>,
     opd_elq: VecDeque<HtmlInputElement>,
@@ -46,7 +47,7 @@ impl Game24State {
             deck: (0..52).collect(), spos: 0, ncnt: 1, tnow: Instant::now(),
             sol_elm: NodeRef::default(), eqm_elm: NodeRef::default(),
             grp_opd: NodeRef::default(), grp_opr: NodeRef::default(),
-            opr_elm: None, opd_elq: VecDeque::new(),
+            tmr_elm: NodeRef::default(), opr_elm: None, opd_elq: VecDeque::new(),
         };  game24.dealer(4);   game24
     }
 
@@ -81,8 +82,8 @@ impl Game24State {
             self.grp_opr.cast::<HtmlFieldSetElement>().unwrap().set_disabled(true);
 
             if str.parse::<Expr>().unwrap().value() == &self.goal {
-                let dur = self.tnow.elapsed();  self.tnow = Instant::now();
-                log::info!("timing: {:.1}s", dur.as_secs_f32());    // TODO: show it on page
+                self.tmr_elm.cast::<HtmlElement>().unwrap()
+                    .set_inner_text(&format!("{:.1}s", self.tnow.elapsed().as_secs_f32()));
 
                         eqm_elm.set_inner_text("=");    set_checked(&eqm_elm, true);
             } else {    eqm_elm.set_inner_text("≠");
@@ -100,6 +101,7 @@ impl Game24State {
         let  eqm_elm = self.eqm_elm.cast::<HtmlElement>().unwrap();
         eqm_elm.set_inner_text("≠?");   set_checked(&eqm_elm, false);     // XXX: "mixed"
 
+        self.tmr_elm.cast::<HtmlElement>().unwrap().set_inner_text("");
         self.sol_elm.cast::<HtmlElement>().unwrap().set_inner_text("");
         let coll = self.grp_opd.cast::<HtmlElement>().unwrap().children();
         //let coll = web_sys::window().unwrap().document().unwrap()
@@ -329,6 +331,10 @@ impl Component for Game24State {
                 data-bs-toogle="tooltip" title="Click to refresh new">{ "Refresh" }</button>
         </div>
 
+        <div id="timer" ref={ self.tmr_elm.clone() }
+            data-bs-toggle="tooltip" title="Time for calculation"
+            class="mx-1 font-sans text-yellow-600 absolute left-0"></div>
+
         <div id="all-solutions" ref={ self.sol_elm.clone() }
             class="overflow-y-auto ml-auto mr-auto w-fit text-left text-lime-500 text-xl"
             data-bs-toggle="tooltip" title="All inequivalent solutions"></div>
@@ -356,7 +362,7 @@ fn root_route(routes: &RootRoute) -> Html {
 
             <header class="text-4xl m-4"> <GHcorner/>
                 //{ Html::from_html_unchecked(include_str!("../assets/gh-corner.html").into()) }
-                <a href="https://github.com/mhfan/inrust">{ "'24' Challenge" }</a>
+                <a href="https://github.com/mhfan/inrust">{ "24 Challenge" }</a>
             </header>
 
             <Game24State/>
