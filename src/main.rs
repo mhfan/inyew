@@ -82,8 +82,9 @@ impl Game24State {
             self.grp_opr.cast::<HtmlFieldSetElement>().unwrap().set_disabled(true);
 
             if str.parse::<Expr>().unwrap().value() == &self.goal {
-                self.tmr_elm.cast::<HtmlElement>().unwrap()
-                    .set_inner_text(&format!("{:.1}s", self.tnow.elapsed().as_secs_f32()));
+                let tmr_elm = self.tmr_elm.cast::<HtmlElement>().unwrap();
+                tmr_elm.set_inner_text(&format!("{:.1}s", self.tnow.elapsed().as_secs_f32()));
+                tmr_elm.set_hidden(false);
 
                         eqm_elm.set_inner_text("=");    set_checked(&eqm_elm, true);
             } else {    eqm_elm.set_inner_text("≠");
@@ -100,9 +101,9 @@ impl Game24State {
 
         let  eqm_elm = self.eqm_elm.cast::<HtmlElement>().unwrap();
         eqm_elm.set_inner_text("≠?");   set_checked(&eqm_elm, false);     // XXX: "mixed"
+        self.tmr_elm.cast::<HtmlElement>().unwrap().set_hidden(true);
+        self.sol_elm.cast::<HtmlElement>().unwrap().set_hidden(true);
 
-        self.tmr_elm.cast::<HtmlElement>().unwrap().set_inner_text("");
-        self.sol_elm.cast::<HtmlElement>().unwrap().set_inner_text("");
         let coll = self.grp_opd.cast::<HtmlElement>().unwrap().children();
         //let coll = web_sys::window().unwrap().document().unwrap()
         //    .get_element_by_id("nums-group").unwrap().children();
@@ -125,7 +126,7 @@ enum Msg {
     Operator(HtmlInputElement),
     Operands(HtmlInputElement),
     Editable(HtmlInputElement),
-    Update(Option<u8>, Rational),
+    Update(Option<u8>, Rational),   // Input
     Resize(u8),
     Dismiss,
     Resolve,
@@ -177,7 +178,10 @@ impl Component for Game24State {
             }
 
             Msg::Dismiss => { self.clear_state();   return true }
-            Msg::Update(idx, val) => {
+            Msg::Update(idx, val) => {  self.tnow = Instant::now();
+                self.tmr_elm.cast::<HtmlElement>().unwrap().set_hidden(true);
+                self.sol_elm.cast::<HtmlElement>().unwrap().set_hidden(true);
+
                 if let Some(idx) = idx {    let idx = idx as usize;
                     debug_assert!(idx < self.nums.len(), "index overflow");
                     self.nums[idx] = val;
@@ -195,7 +199,8 @@ impl Component for Game24State {
                         format!("<em>{cnt}</em> solutions in total<br/>")
                     } else { String::new() })).collect::<String>();
 
-                self.sol_elm.cast::<HtmlElement>().unwrap().set_inner_html(&sols);
+                let sol_elm = self.sol_elm.cast::<HtmlElement>().unwrap();
+                sol_elm.set_inner_html(&sols);  sol_elm.set_hidden(false);
             }
         }   false
     }
@@ -331,11 +336,11 @@ impl Component for Game24State {
                 data-bs-toogle="tooltip" title="Click to refresh new">{ "Refresh" }</button>
         </div>
 
-        <div id="timer" ref={ self.tmr_elm.clone() }
+        <div id="timer" ref={ self.tmr_elm.clone() } hidden=true
             data-bs-toggle="tooltip" title="Time for calculation"
             class="mx-1 font-sans text-yellow-600 absolute left-0"></div>
 
-        <div id="all-solutions" ref={ self.sol_elm.clone() }
+        <div id="all-solutions" ref={ self.sol_elm.clone() } hidden=true
             class="overflow-y-auto ml-auto mr-auto w-fit text-left text-lime-500 text-xl"
             data-bs-toggle="tooltip" title="All inequivalent solutions"></div>
     </main> }
