@@ -16,13 +16,13 @@ struct Game24State {
     spos: u8,       // shuffle position
 
     ncnt: u8,
-    tnow: Instant,
 
+    tnow: Instant,  // XXX: use reactivity instead
+    tmr_elm: NodeRef,
     sol_elm: NodeRef,
     eqm_elm: NodeRef,
     grp_opd: NodeRef,
     grp_opr: NodeRef,
-    tmr_elm: NodeRef,
 
     opr_elm:   Option<HtmlInputElement>,
     opd_elq: VecDeque<HtmlInputElement>,
@@ -63,10 +63,10 @@ impl Game24State {
         self.ncnt += 1; if self.ncnt == self.nums.len() as u8 {
             let str = str.chars().map(|ch|
                 match ch { '×' => '*', '÷' => '/', _ => ch }).collect::<String>();
-            let eqm_elm = self.eqm_elm.cast::<HtmlElement>().unwrap();
             //opr.parent_element().unwrap().parent_element().unwrap()
             //    .dyn_into::<HtmlFieldSetElement>().unwrap().set_disabled(true);
             self.grp_opr.cast::<HtmlFieldSetElement>().unwrap().set_disabled(true);
+            let eqm_elm = self.eqm_elm.cast::<HtmlElement>().unwrap();
 
             if str.parse::<Expr>().unwrap().value() == &self.goal {
                 let tmr_elm = self.tmr_elm.cast::<HtmlElement>().unwrap();
@@ -81,7 +81,6 @@ impl Game24State {
     }
 
     fn clear_state(&mut self) {     //log::debug!("clear state");
-        self.grp_opr.cast::<HtmlFieldSetElement>().unwrap().set_disabled(false);
         self.opd_elq.iter().for_each(|elm| set_checked(elm, false));
         //if let Some(opr) = self.opr_elm { opr.set_checked(false); }
         self.opd_elq.clear();   self.opr_elm = None;    self.ncnt = 1;
@@ -91,6 +90,7 @@ impl Game24State {
         self.tmr_elm.cast::<HtmlElement>().unwrap().set_hidden(true);
         self.sol_elm.cast::<HtmlElement>().unwrap().set_hidden(true);
 
+        self.grp_opr.cast::<HtmlFieldSetElement>().unwrap().set_disabled(false);
         let coll = self.grp_opd.cast::<HtmlElement>().unwrap().children();
         //let coll = web_sys::window().unwrap().document().unwrap()
         //    .get_element_by_id("nums-group").unwrap().children();
@@ -258,6 +258,7 @@ impl Component for Game24State {
             onchange={ link.batch_callback(|e: Event| e.target().and_then(|t|
                 t.dyn_into().ok().map(Msg::Operator))) } data-bs-toggle="tooltip"
             title="Click to (un)check\nDrag over to replace/exchange">{
+
             [ "+", "-", "×", "÷" ].into_iter().map(|op| html! {
                 <div class="mx-6 my-4 inline-block">
                     <input type="radio" name="ops" id={ op } value={ op }
@@ -315,6 +316,7 @@ impl Component for Game24State {
                     t.dyn_into::<web_sys::HtmlSelectElement>().ok().and_then(|sel|
                         sel.value().parse::<u8>().ok().map(Msg::Resize)))) }
                 data-bs-toogle="tooltip" title="Click to select numbers count">{
+
                 (4..=6).map(|n| html! { <option value={ n.to_string() }
                     selected={ n == self.nums.len() }>{ format!("{n} nums") }</option>
                 }).collect::<Html>()
@@ -334,7 +336,7 @@ impl Component for Game24State {
   }
 }
 
-fn root_route(routes: RootRoute) -> Html {
+fn main_route(routes: MainRoute) -> Html {
     #[function_component(GHcorner)] fn gh_corner() -> Html {
         /*let elm = web_sys::window().unwrap().document().unwrap()
             .create_element("a").unwrap();
@@ -351,7 +353,7 @@ fn root_route(routes: RootRoute) -> Html {
     }
 
     #[allow(clippy::let_unit_value)] match routes {
-        RootRoute::Home  => html! { <>
+        MainRoute::Home  => html! { <>
             //margin: 0 auto;   //class: justify-center;    // XXX: not working
             <style>{ r"html { background-color: #15191D; color: #DCDCDC; }
                 body { font-family: Courier, Monospace; text-align: center; height: 100vh; }"
@@ -374,7 +376,7 @@ fn root_route(routes: RootRoute) -> Html {
             </footer>
         </> },
 
-        RootRoute::Subs => html! { <Switch<SubRoute> render={ switch }/> },
+        MainRoute::Subs => html! { <Switch<SubRoute> render={ switch }/> },
     }
 }
 
@@ -388,7 +390,7 @@ fn switch(routes: SubRoute) -> Html {
 // for {username}.github.io/{repo_name}, replace 'inyew' to your repo name
 // XXX: remove all "/inyew" for {username}.github.io
 
-#[derive(Clone, Routable, PartialEq)] enum RootRoute {
+#[derive(Clone, Routable, PartialEq)] enum MainRoute {
     #[at("/")] Home,
     #[at("/:s")] Subs,
 }
@@ -401,7 +403,7 @@ fn switch(routes: SubRoute) -> Html {
 #[function_component(Game24App)] fn game24app() -> Html {   // main root
     html! {
         <BrowserRouter basename="/inyew/">  // OR <base href="/inyew/"> in index.html?
-            <Switch<RootRoute> render={ root_route }/>
+            <Switch<MainRoute> render={ main_route }/>
         </BrowserRouter>
     }
 }
