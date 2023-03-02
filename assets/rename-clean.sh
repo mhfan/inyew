@@ -6,11 +6,15 @@
  #                                                              #
  # Copyright (c) 2022 M.H.Fan, All Rights Reserved.             #
  #                                                              #
- # Last modified: 一, 29  8 2022 15:58:36 +0800       by mhfan #
+ # Last modified: 四, 02  3 2023 17:27:27 +0800       by mhfan #
  ################################################################
 
 # https://www.me.uk/cards/makeadeck.cgi
 # https://github.com/revk/SVG-playing-cards
+
+# remove white frame:
+sed -i '' -e 's%<rect x="-240" .* height="672" fill="white"></rect>%%' *.svg
+sed -i '' -e 's%-132 -180 264 360%-120 -168 240 336%' *.svg
 
 suits=(S H C D);
 court=(T J Q K);
@@ -27,6 +31,6 @@ done
 mv 105.svg JokerR.svg
 mv 107.svg JokerB.svg
 mv 108.svg back-maze.svg
-for ((n=2; n < 108; n+=2)) do rm -f $(printf %03d n).svg; done
+for ((n=2; n < 108; n+=2)) do rm -f $(printf %03d $n).svg; done
 
  # vim:sts=4 ts=8 sw=4 noet
