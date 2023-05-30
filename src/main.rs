@@ -12,40 +12,46 @@ struct Game24State {
     goal: Rational,
     nums: Vec<Rational>,
 
-    deck: Vec<i32>, // hold all cards number
+    deck: Vec<u8>,  // hold all cards number
     spos: u8,       // shuffle position
 
-    ncnt: u8,
+    ncnt: u8,       // combined numbers count
+    tnow: Instant,  // timing
 
-    tnow: Instant,  // XXX: use reactivity instead
-    tmr_elm: NodeRef,
+    tmr_elm: NodeRef,   // XXX: use reactivity instead, maybe all these NodeRef
     sol_elm: NodeRef,
     eqm_elm: NodeRef,
+    ovr_elm: NodeRef,
     grp_opd: NodeRef,
     grp_opr: NodeRef,
 
-    opr_elm:   Option<HtmlInputElement>,
-    opd_elq: VecDeque<HtmlInputElement>,
+    opr_elm:   Option<HtmlInputElement>,    // element of selected operator
+    opd_elq: VecDeque<HtmlInputElement>,    // elements queue of selected operands
 }
 
 impl Game24State {
     fn new() -> Self {
-        let mut game24 = Self { goal: 24.into(), nums: vec![],
+        let mut game24 = Self {  goal: 24.into(), nums: vec![],
             deck: (0..52).collect(), spos: 0, ncnt: 1, tnow: Instant::now(),
             sol_elm: NodeRef::default(), eqm_elm: NodeRef::default(),
             grp_opd: NodeRef::default(), grp_opr: NodeRef::default(),
-            tmr_elm: NodeRef::default(), opr_elm: None, opd_elq: VecDeque::new(),
+            tmr_elm: NodeRef::default(), ovr_elm: NodeRef::default(),
+            opr_elm: None, opd_elq: VecDeque::new(),
         };  game24.dealer(4);   game24
     }
 
     fn dealer(&mut self, n: u8) {
         use rand::seq::SliceRandom;
         let mut rng = rand::thread_rng();
+        //let dst = distributions::Uniform::new(1, 100);
 
+        //let n = if 0 < n { n } else { self.nums.len() as u8 };
         loop {  if self.spos == 0 { self.deck.shuffle(&mut rng); }
-            self.nums = self.deck[self.spos as usize..].partial_shuffle(&mut rng,
-                n as usize).0.iter().map(|n| Rational::from((n % 13) + 1)).collect();
+            self.nums = self.deck[self.spos as usize..]
+                .partial_shuffle(&mut rng, n as usize).0.iter().map(|&n|
+                    Rational::from((n as i32 % 13) + 1)).collect();
             self.spos += n; if self.deck.len() < (self.spos + n) as usize { self.spos = 0; }
+            //self.nums = (&mut rng).sample_iter(dst).take(4).map(Rational::from).collect();
 
             if !calc24_first(&self.goal, &self.nums, DynProg).is_empty() { break }
         }   self.tnow = Instant::now();
@@ -54,43 +60,48 @@ impl Game24State {
     fn form_expr(&mut self) {
         let opd = &self.opd_elq;
         let opr = self.opr_elm.as_ref().unwrap();
+
         let str = format!("({} {} {})", opd[0].value(), opr.value(), opd[1].value());
-
-        opd[1].set_size(str.len() as u32);  opd[1].set_value(&str);
+        opd[0].set_size(str.len() as u32);  opd[0].set_value(&str);
         opd.iter().for_each(|elm| set_checked(elm, false));
-        opd[0].set_hidden(true);    opr.set_checked(false);
+        opd[1].set_hidden(true);    opr.set_checked(false);     //opd[1].blur().unwrap();
 
-        self.ncnt += 1; if self.ncnt == self.nums.len() as u8 {
+        self.opd_elq.clear();       self.opr_elm = None;
+        self.ncnt += 1;     if self.ncnt == self.nums.len() as u8 {
             let str = str.chars().map(|ch|
                 match ch { '×' => '*', '÷' => '/', _ => ch }).collect::<String>();
+
             //opr.parent_element().unwrap().parent_element().unwrap()
             //    .dyn_into::<HtmlFieldSetElement>().unwrap().set_disabled(true);
             self.grp_opr.cast::<HtmlFieldSetElement>().unwrap().set_disabled(true);
-            let eqm_elm = self.eqm_elm.cast::<HtmlElement>().unwrap();
+            let eqm_elm = &self.eqm_elm.cast::<HtmlElement>().unwrap();
 
             if str.parse::<Expr>().unwrap().value() == &self.goal {
-                let tmr_elm = self.tmr_elm.cast::<HtmlElement>().unwrap();
+                let tmr_elm = &self.tmr_elm.cast::<HtmlElement>().unwrap();
                 tmr_elm.set_inner_text(&format!("{:.1}s", self.tnow.elapsed().as_secs_f32()));
                 tmr_elm.set_hidden(false);
 
-                        eqm_elm.set_inner_text("=");    set_checked(&eqm_elm, true);
+                        eqm_elm.set_inner_text("=");    set_checked(eqm_elm, true);
             } else {    eqm_elm.set_inner_text("≠");
                 eqm_elm.set_attribute("aria-checked", "false").unwrap();
             }
-        }   self.opd_elq.clear();   self.opr_elm = None;
+        }
     }
 
     fn clear_state(&mut self) {     //log::debug!("clear state");
         self.opd_elq.iter().for_each(|elm| set_checked(elm, false));
-        //if let Some(opr) = self.opr_elm { opr.set_checked(false); }
+        if let Some(opr) = &self.opr_elm { opr.set_checked(false); }
         self.opd_elq.clear();   self.opr_elm = None;    self.ncnt = 1;
 
-        let  eqm_elm = self.eqm_elm.cast::<HtmlElement>().unwrap();
-        eqm_elm.set_inner_text("≠?");   set_checked(&eqm_elm, false);     // XXX: "mixed"
+        let  eqm_elm = &self.eqm_elm.cast::<HtmlElement>().unwrap();
+        eqm_elm.set_inner_text("≠?");   set_checked(eqm_elm, false);     // XXX: "mixed"
         self.tmr_elm.cast::<HtmlElement>().unwrap().set_hidden(true);
         self.sol_elm.cast::<HtmlElement>().unwrap().set_hidden(true);
 
-        self.grp_opr.cast::<HtmlFieldSetElement>().unwrap().set_disabled(false);
+        let ovr_elm = &self.ovr_elm.cast::<HtmlInputElement>().unwrap();
+        if !ovr_elm.hidden() { ovr_elm.set_value(""); }
+        self.grp_opr.cast::<HtmlFieldSetElement>().unwrap().set_disabled(!ovr_elm.hidden());
+
         let coll = self.grp_opd.cast::<HtmlElement>().unwrap().children();
         //let coll = web_sys::window().unwrap().document().unwrap()
         //    .get_element_by_id("nums-group").unwrap().children();
@@ -114,6 +125,7 @@ enum Msg {
     Operands(HtmlInputElement),
     Editable(HtmlInputElement),
     Update(Option<u8>, Rational),   // Input
+    Overall(String),
     Resize(u8),
     Dismiss,
     Resolve,
@@ -138,7 +150,6 @@ impl Component for Game24State {
             Msg::Operands(inp) => if self.ncnt != self.nums.len() as u8 {
                 let opd = &mut self.opd_elq;
                 let mut idx = opd.len();
-                //inp.blur().unwrap();
 
                 if  opd.iter().enumerate().any(|(i, elm)|
                     if elm.is_same_node(Some(inp.as_ref())) { idx = i; true } else { false }) {
@@ -159,9 +170,23 @@ impl Component for Game24State {
                 inp.set_read_only(false);
             }
 
+            Msg::Overall(s) => {
+                self.nums = s.split_ascii_whitespace()
+                    .filter_map(|s| s.parse::<Rational>().ok()).collect();
+                self.sol_elm.cast::<HtmlElement>().unwrap().set_hidden(true);
+                //yew::Component::update(self, _ctx, Msg::Resolve);
+            }
+
             Msg::Resize(n) => {     debug_assert!(n < 10, "too big to solve!");
-                self.dealer(if 0 < n { n } else { self.nums.len() as u8 });
-                self.clear_state();     return true
+                let grp_opd = &self.grp_opd.cast::<HtmlElement>().unwrap();
+                let ovr_elm = &self.ovr_elm.cast::<HtmlElement>().unwrap();
+
+                let ovr = ovr_elm.hidden();     if 1 == n || (0 == n && !ovr) {
+                    if  ovr { grp_opd.set_hidden(true);     ovr_elm.set_hidden(false); }
+                } else {
+                    if !ovr { grp_opd.set_hidden(false);    ovr_elm.set_hidden(true); }
+                    self.dealer(if 0 < n { n } else { self.nums.len() as u8 });
+                }   self.clear_state();     return true
             }
 
             Msg::Dismiss => { self.clear_state();   return true }
@@ -169,24 +194,30 @@ impl Component for Game24State {
                 self.tmr_elm.cast::<HtmlElement>().unwrap().set_hidden(true);
                 self.sol_elm.cast::<HtmlElement>().unwrap().set_hidden(true);
 
-                if let Some(idx) = idx {    let idx = idx as usize;
-                    debug_assert!(idx < self.nums.len(), "index overflow");
-                    self.nums[idx] = val;
+                if let Some(idx) = idx { self.nums[idx as usize] = val;
+                    debug_assert!(idx < self.nums.len() as u8, "index overflow");
                 } else { self.goal = val; }
             }
 
             Msg::Resolve => {
+                let ovr_elm = &self.ovr_elm.cast::<HtmlInputElement>().unwrap();
+                if !ovr_elm.hidden() && ovr_elm.value().is_empty() {
+                    ovr_elm.focus().unwrap();   return false
+                }
+
                 let sols = calc24_coll(&self.goal, &self.nums, DynProg);
                 let cnt  = sols.len();
 
                 let sols = sols.into_iter().map(|str| str.chars().map(|ch|
                         match ch { '*' => '×', '/' => '÷', _ => ch })
                     .chain("<br/>".chars()).collect())
-                    .chain(std::iter::once_with(|| if 5 < cnt {
-                        format!("<em>{cnt}</em> solutions in total<br/>")
+                    .chain(std::iter::once_with(|| if 5 < cnt { format!(
+                        "<span class=\"text-white\">Got {cnt} solutions</span><br/>")
+                    } else if cnt < 1 { String::from(
+                        "<span class=\"text-red-500\">Got NO solutions!</span><br/>")
                     } else { String::new() })).collect::<String>();
 
-                let sol_elm = self.sol_elm.cast::<HtmlElement>().unwrap();
+                let sol_elm = &self.sol_elm.cast::<HtmlElement>().unwrap();
                 sol_elm.set_inner_html(&sols);  sol_elm.set_hidden(false);
             }
         }   false
@@ -197,7 +228,7 @@ impl Component for Game24State {
     //fn destroy (&mut self, ctx: &Context<Self>) {}
 
   fn view(&self, ctx: &Context<Self>) -> Html {
-    let link = ctx.link();  // Callback::from()
+    let link = ctx.link();  // Callback::from(|_| ())
     //web_sys::window().map(|win| win.location().reload());
     // XXX: drag to exchange/replace?
 
@@ -205,9 +236,8 @@ impl Component for Game24State {
         e.target().and_then(|t| t.dyn_into().ok().map(Msg::Editable)));
         //e.prevent_default();  // prevent dblclick from selection?
 
-    let num_changed = link.batch_callback(|e: FocusEvent| {
+    let num_changed = link.batch_callback(|e: Event| {
         let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-        if  inp.read_only() { return None }
 
         if  inp.check_validity() {   inp.set_read_only(true);
             Some(Msg::Update(inp.get_attribute("id").unwrap().get(1..).unwrap()
@@ -245,7 +275,7 @@ impl Component for Game24State {
         focus:ring-4 focus:outline-none focus:ring-stone-300 shadow-lg shadow-stone-500/50
         dark:focus:ring-stone-800 dark:shadow-lg dark:shadow-stone-800/80";
 
-    //let resolve = use_state_eq(|| false);     // XXX: reactive
+    //let resolving = use_state_eq(|| false);     // XXX: reactive
     html! { <main class="mt-auto mb-auto">
         <div id="play-cards"/>    // TODO:
 
@@ -276,9 +306,21 @@ impl Component for Game24State {
         <div id="expr-skel">
             <span id="nums-group" ref={ self.grp_opd.clone() } data-bs-toggle="tooltip"
                 title="Click to (un)check\nDouble click to input\nDrag over to exchange"
-                ondblclick={ num_editable.clone() } onfocusout={ num_changed.clone() }
+                ondblclick={ num_editable.clone() } onchange={ num_changed.clone() }
                 onclick={ link.batch_callback(|e: MouseEvent| e.target().and_then(|t|
                     t.dyn_into().ok().map(Msg::Operands))) }>{ nums }</span>
+
+            <input type="text" id="overall" name="operands" //minlength="32" size="16"
+                data-bs-toggle="tooltip" title="Input space seperated numbers"
+                placeholder="???" inputmode="numeric" pattern=r"\s*(-?\d+(\/\d+)?\s*){2,9}"
+                onchange={ link.batch_callback(|e: Event| {
+                    let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                    let vs  = inp.value();
+                    if  inp.check_validity() && !vs.is_empty() { Some(Msg::Overall(vs))
+                    } else { if inp.focus().is_ok() { inp.select() }    None }
+                })} ref={ self.ovr_elm.clone() } hidden=true
+                class={ classes!(num_class, "aria-checked:ring-purple-600",
+                    "aria-checked:ring", "rounded-full", "mx-2") }/>
 
             // data-bs-toggle="collapse" data-bs-target="#all-solutions"
             //       aria-expanded="false" aria-controls="all-solutions"
@@ -291,7 +333,7 @@ impl Component for Game24State {
                 data-bs-toggle="tooltip" title="Double click to get solutions">{ "≠?" }</button>
 
             <input type="text" id="G" value={ self.goal.to_string() } readonly=true
-                ondblclick={ num_editable } onblur={ num_changed }
+                ondblclick={ num_editable } onchange={ num_changed }
                 placeholder="??" inputmode="numeric" pattern=r"-?\d+(\/\d+)?"
                 maxlength="8" size="4" class={ classes!(num_class, "rounded-md") }
                 data-bs-toggle="tooltip" title="Double click to input new goal"/>
@@ -311,16 +353,18 @@ impl Component for Game24State {
                 onclick={ link.callback(|_| Msg::Dismiss) }
                 data-bs-toogle="tooltip" title="Click to dismiss expr."/>
 
-            <select class={ classes!(ctrl_class, "appearance-none") }
+            <select class={ classes!(ctrl_class, "appearance-none") } data-bs-toogle="tooltip"
                 onchange={ link.batch_callback(|e: Event| e.target().and_then(|t|
-                    t.dyn_into::<web_sys::HtmlSelectElement>().ok().and_then(|sel|
+                    t.dyn_into::<web_sys::HtmlSelectElement>() .ok().and_then(|sel|
                         sel.value().parse::<u8>().ok().map(Msg::Resize)))) }
-                data-bs-toogle="tooltip" title="Click to select numbers count">{
+                title="Click to set numbers count\nOverall - single element for all numbers">
 
+                <option value="1">{ "Overall" }</option>{
                 (4..=6).map(|n| html! { <option value={ n.to_string() }
                     selected={ n == self.nums.len() }>{ format!("{n} nums") }</option>
                 }).collect::<Html>()
             }</select>
+
             <button class={ classes!(ctrl_class) } onclick={ link.callback(|_| Msg::Resize(0)) }
                 data-bs-toogle="tooltip" title="Click to refresh new">{ "Refresh" }</button>
         </div>
