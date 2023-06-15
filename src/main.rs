@@ -40,17 +40,19 @@ impl Game24State {
         };  game24.dealer(4);   game24
     }
 
-    fn dealer(&mut self, n: u8) {
+    fn dealer(&mut self, cnt: u8) {
         use rand::seq::SliceRandom;
         let mut rng = rand::thread_rng();
         //let dst = distributions::Uniform::new(1, 100);
 
-        //let n = if 0 < n { n } else { self.nums.len() as u8 };
-        loop {  if self.spos == 0 { self.deck.shuffle(&mut rng); }
+        //let cnt = if 0 < cnt { cnt } else { self.nums.len() as u8 };
+        loop {
+            if self.deck.len() < (self.spos + cnt) as usize { self.spos = 0; }
+            if self.spos == 0 {   self.deck.shuffle(&mut rng); }
+
             self.nums = self.deck[self.spos as usize..]
-                .partial_shuffle(&mut rng, n as usize).0.iter().map(|&n|
-                    Rational::from((n as i32 % 13) + 1)).collect();
-            self.spos += n; if self.deck.len() < (self.spos + n) as usize { self.spos = 0; }
+                .partial_shuffle(&mut rng, cnt as usize).0.iter().map(|&n|
+                    Rational::from((n as i32 % 13) + 1)).collect();     self.spos += cnt;
             //self.nums = (&mut rng).sample_iter(dst).take(4).map(Rational::from).collect();
 
             if !calc24_first(&self.goal, &self.nums, DynProg).is_empty() { break }
@@ -64,7 +66,7 @@ impl Game24State {
         let str = format!("({} {} {})", opd[0].value(), opr.value(), opd[1].value());
         opd[0].set_size(str.len() as u32);  opd[0].set_value(&str);
         opd.iter().for_each(|elm| set_checked(elm, false));
-        opd[1].set_hidden(true);    opr.set_checked(false);     //opd[1].blur().unwrap();
+        opd[1].set_hidden(true);    opr.set_checked(false);
 
         self.opd_elq.clear();       self.opr_elm = None;
         self.ncnt += 1;     if self.ncnt == self.nums.len() as u8 {
@@ -140,10 +142,10 @@ impl Component for Game24State {
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::Operator(inp) => { //log::debug!("{}", inp.checked());
-                /*if  inp.is_same_node(self.opr_elm.as_ref().map(|elm|
-                    elm.as_ref())) { inp.set_checked(false);
-                    self.opr_elm = None;    return false;
-                }*/ self.opr_elm = Some(inp);
+                if  inp.is_same_node(self.opr_elm.as_ref().map(|elm|
+                    elm.as_ref())) { self.opr_elm = None;
+                    inp.set_checked(false);     return false;
+                }                    self.opr_elm = Some(inp);
                 if  self.opd_elq.len() == 2 { self.form_expr(); }
             }
 
@@ -153,8 +155,9 @@ impl Component for Game24State {
 
                 if  opd.iter().enumerate().any(|(i, elm)|
                     if elm.is_same_node(Some(inp.as_ref())) { idx = i; true } else { false }) {
-                    opd.remove(idx);    set_checked(&inp, false);
-                } else {                set_checked(&inp, true);
+                    opd.remove(idx);    inp.blur().unwrap();
+                         set_checked(&inp, false);
+                } else { set_checked(&inp, true);
 
                     if 1 < idx { set_checked(&opd.pop_front().unwrap(), false);
                     }   opd.push_back(inp);
@@ -228,7 +231,7 @@ impl Component for Game24State {
     //fn destroy (&mut self, ctx: &Context<Self>) {}
 
   fn view(&self, ctx: &Context<Self>) -> Html {
-    let link = ctx.link();  // Callback::from(|_| ())
+    let link = ctx.link();  // Callback::from(|_| {})
     //web_sys::window().map(|win| win.location().reload());
     // XXX: drag to exchange/replace?
 
@@ -284,8 +287,9 @@ impl Component for Game24State {
             "repeat the process until all numbers are consumed, " }<br/>{
             "the final expression will be determined automatically." }<br/><br/></p>
 
-        <fieldset id="ops-group" ref={ self.grp_opr.clone() }
-            onchange={ link.batch_callback(|e: Event| e.target().and_then(|t|
+        <fieldset id="ops-group" ref={ &self.grp_opr }
+            // use onclick instead of onchange for capable of de-selection
+            onclick={ link.batch_callback(|e: MouseEvent| e.target().and_then(|t|
                 t.dyn_into().ok().map(Msg::Operator))) } data-bs-toggle="tooltip"
             title="Click to (un)check\nDrag over to replace/exchange">{
 
@@ -304,9 +308,9 @@ impl Component for Game24State {
         }</fieldset>
 
         <div id="expr-skel">
-            <span id="nums-group" ref={ self.grp_opd.clone() } data-bs-toggle="tooltip"
+            <span id="nums-group" ref={ &self.grp_opd } data-bs-toggle="tooltip"
                 title="Click to (un)check\nDouble click to input\nDrag over to exchange"
-                ondblclick={ num_editable.clone() } onchange={ num_changed.clone() }
+                ondblclick={ &num_editable } onchange={ &num_changed }
                 onclick={ link.batch_callback(|e: MouseEvent| e.target().and_then(|t|
                     t.dyn_into().ok().map(Msg::Operands))) }>{ nums }</span>
 
@@ -318,13 +322,13 @@ impl Component for Game24State {
                     let vs  = inp.value();
                     if  inp.check_validity() && !vs.is_empty() { Some(Msg::Overall(vs))
                     } else { if inp.focus().is_ok() { inp.select() }    None }
-                })} ref={ self.ovr_elm.clone() } hidden=true
+                })} ref={ &self.ovr_elm } hidden=true
                 class={ classes!(num_class, "aria-checked:ring-purple-600",
                     "aria-checked:ring", "rounded-full", "mx-2") }/>
 
-            // data-bs-toggle="collapse" data-bs-target="#all-solutions"
-            //       aria-expanded="false" aria-controls="all-solutions"
-            <button ondblclick={ link.callback(|_| Msg::Resolve) } ref={ self.eqm_elm.clone() }
+            // data-bs-toggle="collapse" data-bs-target="#all-sols"
+            //       aria-expanded="false" aria-controls="all-sols"
+            <button ondblclick={ link.callback(|_| Msg::Resolve) } ref={ &self.eqm_elm }
                 class="px-4 py-2 m-4 text-3xl font-bold rounded-md aria-[checked=false]:ring-2
                 aria-checked:ring-2 aria-checked:text-lime-500 aria-checked:ring-lime-400
                 aria-[checked=false]:text-red-500 aria-[checked=false]:ring-red-400
@@ -361,7 +365,7 @@ impl Component for Game24State {
 
                 <option value="1">{ "Overall" }</option>{
                 (4..=6).map(|n| html! { <option value={ n.to_string() }
-                    selected={ n == self.nums.len() }>{ format!("{n} nums") }</option>
+                    selected={ self.nums.len() == n }>{ format!("{n} nums") }</option>
                 }).collect::<Html>()
             }</select>
 
@@ -369,11 +373,11 @@ impl Component for Game24State {
                 data-bs-toogle="tooltip" title="Click to refresh new">{ "Refresh" }</button>
         </div>
 
-        <div id="timer" ref={ self.tmr_elm.clone() } hidden=true
+        <div id="timer" ref={ &self.tmr_elm } hidden=true
             data-bs-toggle="tooltip" title="Time for calculation"
             class="mx-1 font-sans text-yellow-600 absolute left-0"></div>
 
-        <div id="all-solutions" ref={ self.sol_elm.clone() } hidden=true
+        <div id="all-sols" ref={ &self.sol_elm } hidden=true
             class="overflow-y-auto ml-auto mr-auto w-fit text-left text-lime-500 text-xl"
             data-bs-toggle="tooltip" title="All inequivalent solutions"></div>
     </main> }
@@ -403,7 +407,7 @@ fn main_route(routes: MainRoute) -> Html {
                 body { font-family: Courier, Monospace; text-align: center; height: 100vh; }"
             }</style>   // display: flex; flex-direction: column;
 
-            <header class="text-4xl m-4"> <GHcorner/>
+            <header class="text-4xl m-8"> <GHcorner/>
                 //{ Html::from_html_unchecked(include_str!("../assets/gh-corner.html").into()) }
                 <a href="https://github.com/mhfan/inrust">{ "24 Challenge" }</a>
             </header>
