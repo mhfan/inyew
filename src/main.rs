@@ -44,8 +44,8 @@ impl Game24State {
         use rand::seq::SliceRandom;
         let mut rng = rand::thread_rng();
         //let dst = distributions::Uniform::new(1, 100);
+        let cnt = if 0 < cnt { cnt } else { self.nums.len() as u8 };
 
-        //let cnt = if 0 < cnt { cnt } else { self.nums.len() as u8 };
         loop {
             if self.deck.len() < (self.spos + cnt) as usize { self.spos = 0; }
             if self.spos == 0 {   self.deck.shuffle(&mut rng); }
@@ -111,7 +111,6 @@ impl Game24State {
         for i in 0..coll.length() {
             let inp = coll.item(i).unwrap()
                 .dyn_into::<HtmlInputElement>().unwrap();
-            if (self.nums.len() as u32 - 1) < i { inp.set_hidden(true); continue }
             inp.set_size(3);    inp.set_hidden(false);
         }
     }
@@ -170,7 +169,7 @@ impl Component for Game24State {
                     inp.get_attribute("id").unwrap().starts_with("N")*/
                 //let end = inp.value().len() as u32;
                 //inp.set_selection_range(end, end).unwrap();
-                inp.set_read_only(false);
+                inp.set_read_only(false);   inp.focus().unwrap();
             }
 
             Msg::Overall(s) => {
@@ -180,15 +179,15 @@ impl Component for Game24State {
                 //yew::Component::update(self, _ctx, Msg::Resolve);
             }
 
-            Msg::Resize(n) => {     debug_assert!(n < 10, "too big to solve!");
+            Msg::Resize(cnt) => {     debug_assert!(cnt < 10, "too big to solve!");
                 let grp_opd = &self.grp_opd.cast::<HtmlElement>().unwrap();
                 let ovr_elm = &self.ovr_elm.cast::<HtmlElement>().unwrap();
 
-                let ovr = ovr_elm.hidden();     if 1 == n || (0 == n && !ovr) {
-                    if  ovr { grp_opd.set_hidden(true);     ovr_elm.set_hidden(false); }
-                } else {
+                let ovr = ovr_elm.hidden();
+                if 1 == cnt {                               self.nums.clear();
+                              grp_opd.set_hidden(true);     ovr_elm.set_hidden(false);
+                } else if 0 != cnt || ovr {                 self.dealer(cnt);
                     if !ovr { grp_opd.set_hidden(false);    ovr_elm.set_hidden(true); }
-                    self.dealer(if 0 < n { n } else { self.nums.len() as u8 });
                 }   self.clear_state();     return true
             }
 
@@ -203,9 +202,9 @@ impl Component for Game24State {
             }
 
             Msg::Resolve => {
-                let ovr_elm = &self.ovr_elm.cast::<HtmlInputElement>().unwrap();
-                if !ovr_elm.hidden() && ovr_elm.value().is_empty() {
-                    ovr_elm.focus().unwrap();   return false
+                if  self.nums.is_empty() {  // !ovr_elm.hidden() && ovr_elm.value().is_empty()
+                    self.ovr_elm.cast::<HtmlInputElement>().unwrap().focus().unwrap();
+                    return false
                 }
 
                 let sols = calc24_coll(&self.goal, &self.nums, DynProg);
@@ -238,6 +237,11 @@ impl Component for Game24State {
     let num_editable = link.batch_callback(|e: MouseEvent|
         e.target().and_then(|t| t.dyn_into().ok().map(Msg::Editable)));
         //e.prevent_default();  // prevent dblclick from selection?
+
+    let num_focusout = Callback::from(|e: FocusEvent| {
+        let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+        if !inp.read_only() { inp.set_read_only(true); }
+    });
 
     let num_changed = link.batch_callback(|e: Event| {
         let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
@@ -310,9 +314,10 @@ impl Component for Game24State {
         <div id="expr-skel">
             <span id="nums-group" ref={ &self.grp_opd } data-bs-toggle="tooltip"
                 title="Click to (un)check\nDouble click to input\nDrag over to exchange"
-                ondblclick={ &num_editable } onchange={ &num_changed }
-                onclick={ link.batch_callback(|e: MouseEvent| e.target().and_then(|t|
-                    t.dyn_into().ok().map(Msg::Operands))) }>{ nums }</span>
+                onfocusout={ &num_focusout } ondblclick={ &num_editable }
+                onchange={ &num_changed } onclick={ link.batch_callback(|e: MouseEvent|
+                    e.target().and_then(|t| t.dyn_into().ok().map(Msg::Operands))) }
+            >{ nums }</span>
 
             <input type="text" id="overall" name="operands" //minlength="32" size="16"
                 data-bs-toggle="tooltip" title="Input space seperated numbers"
@@ -337,7 +342,7 @@ impl Component for Game24State {
                 data-bs-toggle="tooltip" title="Double click to get solutions">{ "≠?" }</button>
 
             <input type="text" id="G" value={ self.goal.to_string() } readonly=true
-                ondblclick={ num_editable } onchange={ num_changed }
+                onfocusout={ num_focusout } ondblclick={ num_editable } onchange={ num_changed }
                 placeholder="??" inputmode="numeric" pattern=r"-?\d+(\/\d+)?"
                 maxlength="8" size="4" class={ classes!(num_class, "rounded-md") }
                 data-bs-toggle="tooltip" title="Double click to input new goal"/>
