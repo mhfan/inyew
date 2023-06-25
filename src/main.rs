@@ -32,7 +32,7 @@ struct Game24State {
 impl Game24State {
     fn new() -> Self {
         let mut game24 = Self {  goal: 24.into(), nums: vec![],
-            deck: (0..52).collect(), spos: 0, ncnt: 1, tnow: Instant::now(),
+            deck: (0..13*4).collect(), spos: 0, ncnt: 1, tnow: Instant::now(),
             sol_elm: NodeRef::default(), eqm_elm: NodeRef::default(),
             grp_opd: NodeRef::default(), grp_opr: NodeRef::default(),
             tmr_elm: NodeRef::default(), ovr_elm: NodeRef::default(),
@@ -41,12 +41,11 @@ impl Game24State {
     }
 
     fn dealer(&mut self, cnt: u8) {
-        use rand::seq::SliceRandom;
         let mut rng = rand::thread_rng();
-        //let dst = distributions::Uniform::new(1, 100);
+        //let dst = rand::distributions::Uniform::new(1, 100);
         let cnt = if 0 < cnt { cnt } else { self.nums.len() as u8 };
 
-        loop {
+        loop {  use rand::seq::SliceRandom;
             if self.deck.len() < (self.spos + cnt) as usize { self.spos = 0; }
             if self.spos == 0 {   self.deck.shuffle(&mut rng); }
 
