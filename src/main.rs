@@ -251,11 +251,11 @@ impl Component for Game24State {
         } else { if inp.focus().is_ok() { inp.select() }    None }
     });
 
-    let num_class = "px-4 py-2 my-4 w-fit appearance-none select-text
-        read-only:bg-transparent bg-stone-200 border border-purple-200
-        text-center text-2xl text-purple-600 font-semibold
-        hover:text-white hover:bg-purple-600 hover:border-transparent
-        focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2
+    let num_class = "px-4 py-2 my-4 w-fit appearance-none select-text \
+        read-only:bg-transparent bg-stone-200 border border-purple-200 \
+        text-center text-2xl text-purple-600 font-semibold \
+        hover:text-white hover:bg-purple-600 hover:border-transparent \
+        focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2 \
         shadow-xl invalid:border-red-500 invalid:border-2";
 
     let nums = self.nums.iter().enumerate().map(|(idx, num)| {
@@ -276,9 +276,9 @@ impl Component for Game24State {
         }   // https://regexr.com, https://regex101.com
     }).collect::<Html>();
 
-    let ctrl_class = "px-4 py-2 m-4 text-gray-900 font-bold bg-gradient-to-r
-        from-stone-200 via-stone-400 to-stone-500 rounded-lg hover:bg-gradient-to-br
-        focus:ring-4 focus:outline-none focus:ring-stone-300 shadow-lg shadow-stone-500/50
+    let ctrl_class = "px-4 py-2 m-4 text-gray-900 font-bold bg-gradient-to-r \
+        from-stone-200 via-stone-400 to-stone-500 rounded-lg hover:bg-gradient-to-br \
+        focus:ring-4 focus:outline-none focus:ring-stone-300 shadow-lg shadow-stone-500/50 \
         dark:focus:ring-stone-800 dark:shadow-lg dark:shadow-stone-800/80";
 
     //let resolving = use_state_eq(|| false);     // XXX: reactive
@@ -302,9 +302,9 @@ impl Component for Game24State {
                         class="hidden peer"/>   // require value='xxx', default is 'on'
 
                     <label for={ op } draggable="true"
-                        class="px-4 py-2 bg-indigo-600 text-white text-3xl font-bold
-                        hover:bg-indigo-400 peer-checked:outline-none peer-checked:ring-2
-                        peer-checked:ring-indigo-500 peer-checked:ring-offset-2
+                        class="px-4 py-2 bg-indigo-600 text-white text-3xl font-bold \
+                        hover:bg-indigo-400 peer-checked:outline-none peer-checked:ring-2 \
+                        peer-checked:ring-indigo-500 peer-checked:ring-offset-2 \
                         peer-checked:bg-transparent rounded-md shadow-xl">{ op }</label>
                 </div>
             }).collect::<Html>()
@@ -333,10 +333,10 @@ impl Component for Game24State {
             // data-bs-toggle="collapse" data-bs-target="#all-sols"
             //       aria-expanded="false" aria-controls="all-sols"
             <button ondblclick={ link.callback(|_| Msg::Resolve) } ref={ &self.eqm_elm }
-                class="px-4 py-2 m-4 text-3xl font-bold rounded-md aria-[checked=false]:ring-2
-                aria-checked:ring-2 aria-checked:text-lime-500 aria-checked:ring-lime-400
-                aria-[checked=false]:text-red-500 aria-[checked=false]:ring-red-400
-                hover:outline-none hover:ring-2 hover:ring-indigo-400
+                class="px-4 py-2 m-4 text-3xl font-bold rounded-md aria-[checked=false]:ring-2 \
+                aria-checked:ring-2 aria-checked:text-lime-500 aria-checked:ring-lime-400 \
+                aria-[checked=false]:text-red-500 aria-[checked=false]:ring-red-400 \
+                hover:outline-none hover:ring-2 hover:ring-indigo-400 \
                 focus:ring-indigo-500 focus:ring-offset-2" //text-white
                 data-bs-toggle="tooltip" title="Double click to get solutions">{ "≠?" }</button>
 
@@ -346,11 +346,11 @@ impl Component for Game24State {
                 maxlength="8" size="4" class={ classes!(num_class, "rounded-md") }
                 data-bs-toggle="tooltip" title="Double click to input new goal"/>
 
-            /*<style>{ r"
-                [contenteditable='true'].single-line { white-space: nowrap; overflow: hidden; }
-                [contenteditable='true'].single-line br { display: none; }
-                [contenteditable='true'].single-line  * { display: inline; white-space: nowrap; }
-            " }</style>*/
+        /*<style>{ " \
+            [contenteditable='true'].single-line { white-space: nowrap; overflow: hidden; } \
+            [contenteditable='true'].single-line br { display: none; } \
+            [contenteditable='true'].single-line  * { display: inline; white-space: nowrap; } \
+        " }</style>*/
         </div>
 
         <p class="hidden peer-invalid:visible relative -top-[1rem] text-red-500 font-light">{
@@ -407,7 +407,7 @@ fn main_route(routes: MainRoute) -> Html {
     #[allow(clippy::let_unit_value)] match routes {
         MainRoute::Home  => html! { <>
             //margin: 0 auto;   //class: justify-center;    // XXX: not working
-            <style>{ r"html { background-color: #15191D; color: #DCDCDC; }
+            <style>{ "html { background-color: #15191D; color: #DCDCDC; } \
                 body { font-family: Courier, Monospace; text-align: center; height: 100vh; }"
             }</style>   // display: flex; flex-direction: column;
 
