@@ -60,7 +60,7 @@ impl Game24State {
 
     fn form_expr(&mut self) {
         let opd = &self.opd_elq;
-        let opr = self.opr_elm.as_ref().unwrap();
+        let opr =  self.opr_elm.as_ref().unwrap();
 
         let str = format!("({} {} {})", opd[0].value(), opr.value(), opd[1].value());
         opd[0].set_size(str.len() as u32);  opd[0].set_value(&str);
@@ -69,15 +69,15 @@ impl Game24State {
 
         self.opd_elq.clear();       self.opr_elm = None;
         self.ncnt += 1;     if self.ncnt == self.nums.len() as u8 {
-            let str = str.chars().map(|ch|
-                match ch { '×' => '*', '÷' => '/', _ => ch }).collect::<String>();
+            //let str = str.chars().map(|ch|
+            //    match ch { '×' => '*', '÷' => '/', _ => ch }).collect::<String>();
 
             //opr.parent_element().unwrap().parent_element().unwrap()
             //    .dyn_into::<HtmlFieldSetElement>().unwrap().set_disabled(true);
             self.grp_opr.cast::<HtmlFieldSetElement>().unwrap().set_disabled(true);
             let eqm_elm = &self.eqm_elm.cast::<HtmlElement>().unwrap();
 
-            if str.parse::<Expr>().unwrap().value() == &self.goal {
+            if str.parse::<Expr>().is_ok_and(|e| e.value() == &self.goal) {
                 let tmr_elm = &self.tmr_elm.cast::<HtmlElement>().unwrap();
                 tmr_elm.set_inner_text(&format!("{:.1}s", self.tnow.elapsed().as_secs_f32()));
                 tmr_elm.set_hidden(false);
@@ -251,6 +251,11 @@ impl Component for Game24State {
         } else { if inp.focus().is_ok() { inp.select() }    None }
     });
 
+    let ctrl_class = "px-4 py-2 m-4 text-gray-900 font-bold bg-gradient-to-r \
+        from-stone-200 via-stone-400 to-stone-500 rounded-lg hover:bg-gradient-to-br \
+        focus:ring-4 focus:outline-none focus:ring-stone-300 shadow-lg shadow-stone-500/50 \
+        dark:focus:ring-stone-800 dark:shadow-lg dark:shadow-stone-800/80";
+
     let num_class = "px-4 py-2 my-4 w-fit appearance-none select-text \
         read-only:bg-transparent bg-stone-200 border border-purple-200 \
         text-center text-2xl text-purple-600 font-semibold \
@@ -273,13 +278,8 @@ impl Component for Game24State {
             placeholder="?" inputmode="numeric" pattern=r"-?\d+(\/\d+)?"
             class={ classes!(num_class, "aria-checked:ring-purple-600",
                 "aria-checked:ring", "rounded-full", "mx-2") }/>
-        }   // https://regexr.com, https://regex101.com
+        }   // https://regexr.com, https://regex101.com, https://rustexp.lpil.uk
     }).collect::<Html>();
-
-    let ctrl_class = "px-4 py-2 m-4 text-gray-900 font-bold bg-gradient-to-r \
-        from-stone-200 via-stone-400 to-stone-500 rounded-lg hover:bg-gradient-to-br \
-        focus:ring-4 focus:outline-none focus:ring-stone-300 shadow-lg shadow-stone-500/50 \
-        dark:focus:ring-stone-800 dark:shadow-lg dark:shadow-stone-800/80";
 
     //let resolving = use_state_eq(|| false);     // XXX: reactive
     html! { <main class="mt-auto mb-auto">

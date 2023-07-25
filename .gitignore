@@ -1,7 +1,9 @@
-/target
-/Cargo.lock
+
+Cargo.lock
+target
 
 /dist
 /node_modules
 /package-lock.json
 /assets/css/tailwind.css
+

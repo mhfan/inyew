@@ -1,5 +1,6 @@
 
 ![gh-pages-publish](https://github.com/mhfan/inyew/actions/workflows/publish_gh_pages.yml/badge.svg)
+[![dependency status](https://deps.rs/repo/github/mhfan/inyew/status.svg)](https://deps.rs/repo/github/mhfan/inyew)
 
 # Study Yew/Rust for Frontend GUI
 

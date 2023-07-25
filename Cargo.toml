@@ -12,8 +12,8 @@ description = "WebUI/inyew for 24-Game/Puzzle/Challenge"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-yew = { version = "0.20", features = ["csr"] }
-yew-router = "0.17" #git = "https://github.com/yewstack/yew"
+yew = { version = "0.21", features = [ "csr" ] } # client-side rendering
+yew-router = "0.18" #git = "https://github.com/yewstack/yew"
 #reqwasm = "0.5"
 #serde = "1.0"
 #gloo = "0.8"
@@ -27,10 +27,7 @@ log  = "0.4"
 rand = "0.8"    # path = "..",
 inrust  = { git = "https://github.com/mhfan/inrust", default-features = false, features = [ "ahash" ] }  # "cc", "serde"
 instant = { version = "0.1", features = [ "wasm-bindgen" ] }
-
-[dependencies.getrandom]
-features = [ "js" ]
-version  = "0.2"
+getrandom = { version = "0.2", features = [ "js" ]}
 
 [dependencies.web-sys]
 features = [ "HtmlInputElement", "HtmlFieldSetElement", "HtmlSelectElement",
@@ -38,12 +35,13 @@ features = [ "HtmlInputElement", "HtmlFieldSetElement", "HtmlSelectElement",
 version  = "0.3"
 
 [profile.dev]
-incremental = true
+opt-level = 1
 
 [profile.release]
 codegen-units = 1
+strip = 'debuginfo'
 opt-level = "s"
-#strip = true   # XXX: why not working for wasm?
+panic = 'abort'
 lto = true
 
 [workspace]
