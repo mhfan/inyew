@@ -27,10 +27,7 @@ log  = "0.4"
 rand = "0.8"    # path = "..",
 inrust  = { git = "https://github.com/mhfan/inrust", default-features = false, features = [ "ahash" ] }  # "cc", "serde"
 instant = { version = "0.1", features = [ "wasm-bindgen" ] }
-
-[dependencies.getrandom]
-features = [ "js" ]
-version  = "0.2"
+getrandom = { version = "0.2", features = [ "js" ]}
 
 [dependencies.web-sys]
 features = [ "HtmlInputElement", "HtmlFieldSetElement", "HtmlSelectElement",
