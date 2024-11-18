@@ -1,8 +1,8 @@
-const fs = require('fs');
 
+const fs = require('fs');
 function findAllRsExtensions(dir) {
-  const extensions = [];
   const files = fs.readdirSync(dir);
+  const extensions = [];
   files.forEach(file => {
     const filePath = `${dir}/${file}`;
     const stat = fs.statSync(filePath);
@@ -15,21 +15,27 @@ function findAllRsExtensions(dir) {
   return extensions;
 }
 
+/** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: findAllRsExtensions("./src"),
+  content: ["./src/**/*.rs"], //, "./dist/**/*.html"
+  //mode: "all",
+
   theme: {
+    container: { center: true, }
     //extend: { data: { checked: true } },
-    container: {
-      center: true,
-    }
   },
+
   plugins: [
-    //require('@tailwindcss/typography'),
     //require('@tailwindcss/forms'),
-    //require('@tailwindcss/line-clamp'),
+    //require('tailwindcss-children'),
+    //require('@tailwindcss/typography'),
     //require('@tailwindcss/aspect-ratio'),
-    require('tw-elements/dist/plugin')
+    //require('@tailwindcss/line-clamp'),
+    require('tw-elements/plugin.cjs'), // npm install tw-elements -D
   ],
+
   //presets: [ require('@acmecorp/tailwind-base') ],
   // https://github.com/tailwindlabs/tailwindcss/blob/master/stubs/defaultConfig.stub.js
+  // npm install tailwindcss -D #-g // npx tailwindcss init #--full
+  // npx tailwindcss -i tailwind_base.css -o dist/tailwind.css -w #-m
 }

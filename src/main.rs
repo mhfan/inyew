@@ -64,7 +64,7 @@ impl Game24State {
 
         let str = format!("({} {} {})", opd[0].value(), opr.value(), opd[1].value());
         opd[0].set_size(str.len() as u32);  opd[0].set_value(&str);
-        opd.iter().for_each(|elm| set_checked(elm, false));
+        opd.iter().for_each(|elm| set_aria_checked(elm, false));
         opd[1].set_hidden(true);    opr.set_checked(false);
 
         self.opd_elq.clear();       self.opr_elm = None;
@@ -82,7 +82,7 @@ impl Game24State {
                 tmr_elm.set_inner_text(&format!("{:.1}s", self.tnow.elapsed().as_secs_f32()));
                 tmr_elm.set_hidden(false);
 
-                        eqm_elm.set_inner_text("=");    set_checked(eqm_elm, true);
+                        eqm_elm.set_inner_text("=");    set_aria_checked(eqm_elm, true);
             } else {    eqm_elm.set_inner_text("≠");
                 eqm_elm.set_attribute("aria-checked", "false").unwrap();
             }
@@ -90,12 +90,12 @@ impl Game24State {
     }
 
     fn clear_state(&mut self) {     //log::debug!("clear state");
-        self.opd_elq.iter().for_each(|elm| set_checked(elm, false));
+        self.opd_elq.iter().for_each(|elm| set_aria_checked(elm, false));
         if let Some(opr) = &self.opr_elm { opr.set_checked(false); }
         self.opd_elq.clear();   self.opr_elm = None;    self.ncnt = 1;
 
         let  eqm_elm = &self.eqm_elm.cast::<HtmlElement>().unwrap();
-        eqm_elm.set_inner_text("≠?");   set_checked(eqm_elm, false);     // XXX: "mixed"
+        eqm_elm.set_inner_text("≠?");   set_aria_checked(eqm_elm, false);   // XXX: "mixed"
         self.tmr_elm.cast::<HtmlElement>().unwrap().set_hidden(true);
         self.sol_elm.cast::<HtmlElement>().unwrap().set_hidden(true);
 
@@ -115,9 +115,10 @@ impl Game24State {
     }
 }
 
-fn set_checked(elm: &HtmlElement, checked: bool) {
-    if checked { elm.   set_attribute("aria-checked", "true").unwrap();
-    } else {     elm.remove_attribute("aria-checked").unwrap(); }
+fn set_aria_checked(elm: &HtmlElement, checked: bool) {
+    let attr = "aria-checked";
+    let _ = if checked { elm.set_attribute(attr, "true")
+    } else { elm.remove_attribute(attr) };
 }
 
 enum Msg {
@@ -154,10 +155,10 @@ impl Component for Game24State {
                 if  opd.iter().enumerate().any(|(i, elm)|
                     if elm.is_same_node(Some(inp.as_ref())) { idx = i; true } else { false }) {
                     opd.remove(idx);    inp.blur().unwrap();
-                         set_checked(&inp, false);
-                } else { set_checked(&inp, true);
+                         set_aria_checked(&inp, false);
+                } else { set_aria_checked(&inp, true);
 
-                    if 1 < idx { set_checked(&opd.pop_front().unwrap(), false);
+                    if 1 < idx { set_aria_checked(&opd.pop_front().unwrap(), false);
                     }   opd.push_back(inp);
                     if 0 < idx && self.opr_elm.is_some() { self.form_expr(); }
                 }
@@ -346,10 +347,9 @@ impl Component for Game24State {
                 maxlength="8" size="4" class={ classes!(num_class, "rounded-md") }
                 data-bs-toggle="tooltip" title="Double click to input new goal"/>
 
-        /*<style>{ " \
-            [contenteditable='true'].single-line { white-space: nowrap; overflow: hidden; } \
-            [contenteditable='true'].single-line br { display: none; } \
-            [contenteditable='true'].single-line  * { display: inline; white-space: nowrap; } \
+        /*<style>{ r"[contenteditable='true'].single-line br { display: none; }
+            [contenteditable='true'].single-line { white-space: nowrap; overflow: hidden; }
+            [contenteditable='true'].single-line  * { display: inline; white-space: nowrap; }
         " }</style>*/
         </div>
 
@@ -407,9 +407,9 @@ fn main_route(routes: MainRoute) -> Html {
     #[allow(clippy::let_unit_value)] match routes {
         MainRoute::Home  => html! { <>
             //margin: 0 auto;   //class: justify-center;    // XXX: not working
-            <style>{ "html { background-color: #15191D; color: #DCDCDC; } \
-                body { font-family: Courier, Monospace; text-align: center; height: 100vh; }"
-            }</style>   // display: flex; flex-direction: column;
+            <style>{ "html { background-color: #15191D; color: #DCDCDC; }
+                body { font-family: Courier, Monospace; text-align: center; height: 100vh; }
+            " }</style>   // display: flex; flex-direction: column;
 
             <header class="text-4xl m-8"> <GHcorner/>
                 //{ Html::from_html_unchecked(include_str!("../assets/gh-corner.html").into()) }
