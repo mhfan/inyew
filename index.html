@@ -1,1 +1,49 @@
-<!doctype html><html lang=en><meta charset=UTF-8><meta content="width=device-width,initial-scale=1.0,minimum-scale=1.0" name=viewport><link href=/inyew/tailwind-9ba0e3c588307faa.css integrity=sha384-sp2cLpyEfTvDeuUIGj2fStGSYXxubIx+tng8H9OFl09KVnwztXOs/ylE4HOIBhTb rel=stylesheet><title>24 Puzzle</title><link as=fetch crossorigin href=/inyew/inyew-c706fa5bee8cf91f_bg.wasm integrity=sha384-5ZVL1dHkE8DOUtkAfnbBnw6c5S7yLiSZs/mEJUVWt1Y2ygkGDh5W3aB4y5Void1h rel=preload type=application/wasm><link crossorigin href=/inyew/inyew-c706fa5bee8cf91f.js integrity=sha384-/d8X1HC/HC2QX4Xm7zT+rXhZVaTicgnkD+Y6DHppuwovq2NAPWJKMUQuiq4v+Cwm rel=modulepreload></head><body><script>((a=>{let c=1,d=`&`,e=null;if(a.search[c]===`/`){var b=a.search.slice(c).split(d).map((a=>a.replace(/~and~/g,d))).join(`?`);window.history.replaceState(e,e,a.pathname.slice(0,-c)+ b+ a.hash)}})(window.location))</script><script type=module>import a,*as b from"/inyew/inyew-c706fa5bee8cf91f.js";a(`/inyew/inyew-c706fa5bee8cf91f_bg.wasm`);window.wasmBindings=b</script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0">
+  <!--link data-trunk rel="css" href="dist/main.css"/-->
+  <link rel="stylesheet" href="/inyew/tailwind-b204d95524c7976.css" integrity="sha384&#x2D;IYttB3A16ZO9Qaaz6PxJJvZbdp04UOTEY3&#x2F;2ztWjMzUXp3XANAQjr0iiJ9si8Jlm"/>
+  
+  
+  <!-- base href="/inyew/" -->
+  <title>24 Puzzle</title>
+<link rel="modulepreload" href="/inyew/inyew-e6472291cc187a59.js" crossorigin=anonymous integrity="sha384-Jku2mLBjY8eM9BSdc8NmcXNcpMUc7rTN4tgz+GcwEWB+4iFKtqAdVijk5/cjshQy"><link rel="preload" href="/inyew/inyew-e6472291cc187a59_bg.wasm" crossorigin=anonymous integrity="sha384-Lmxe8faHqbFNnaWQBo6KYJrEEWWWlKIIMUYYTCgPh8EJXjYrDtL9NmB/7CtDjNG9" as="fetch" type="application/wasm"></head>
+<body>
+  <!-- Start Single Page Apps for GitHub Pages -->
+  <script type="text/javascript">
+    // Single Page Apps for GitHub Pages, MIT License
+    // https://github.com/rafgraph/spa-github-pages
+    // This script checks to see if a redirect is present in the query string,
+    // converts it back into the correct url and adds it to the
+    // browser's history using window.history.replaceState(...),
+    // which won't cause the browser to attempt to load the new url.
+    // When the single page app is loaded further down in this file,
+    // the correct url will be waiting in the browser's history for
+    // the single page app to route accordingly.
+    (function(l) {
+      if (l.search[1] === '/' ) {
+        var decoded = l.search.slice(1).split('&').map(function(s) {
+          return s.replace(/~and~/g, '&')
+        }).join('?');
+        window.history.replaceState(null, null,
+            l.pathname.slice(0, -1) + decoded + l.hash
+        );
+      }
+    }(window.location))
+  </script>
+  <!-- End Single Page Apps for GitHub Pages -->
+
+<script type="module" nonce="9lkHb64U5y99V17jeisQPQ==">
+import init, * as bindings from '/inyew/inyew-e6472291cc187a59.js';
+const wasm = await init({ module_or_path: '/inyew/inyew-e6472291cc187a59_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script></body>
+</html>
