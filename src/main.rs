@@ -320,7 +320,7 @@ impl Component for Game24State {
             >{ nums }</span>
 
             <input type="text" id="overall" name="operands" //minlength="32" size="16"
-                data-bs-toggle="tooltip" title="Input space seperated numbers"
+                data-bs-toggle="tooltip" title="Input space separated numbers"
                 placeholder="???" inputmode="numeric" pattern=r"\s*(-?\d+(\/\d+)?\s*){2,9}"
                 onchange={ link.batch_callback(|e: Event| {
                     let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
@@ -359,9 +359,9 @@ impl Component for Game24State {
         <div id="ctrl-btns">
             <input type="reset" value="Dismiss" class={ classes!(ctrl_class) }
                 onclick={ link.callback(|_| Msg::Dismiss) }
-                data-bs-toogle="tooltip" title="Click to dismiss expr."/>
+                data-bs-toggle="tooltip" title="Click to dismiss expr."/>
 
-            <select class={ classes!(ctrl_class, "appearance-none") } data-bs-toogle="tooltip"
+            <select class={ classes!(ctrl_class, "appearance-none") } data-bs-toggle="tooltip"
                 onchange={ link.batch_callback(|e: Event| e.target().and_then(|t|
                     t.dyn_into::<web_sys::HtmlSelectElement>() .ok().and_then(|sel|
                         sel.value().parse::<u8>().ok().map(Msg::Resize)))) }
@@ -374,7 +374,7 @@ impl Component for Game24State {
             }</select>
 
             <button class={ classes!(ctrl_class) } onclick={ link.callback(|_| Msg::Resize(0)) }
-                data-bs-toogle="tooltip" title="Click to refresh new">{ "Refresh" }</button>
+                data-bs-toggle="tooltip" title="Click to refresh new">{ "Refresh" }</button>
         </div>
 
         <div id="timer" ref={ &self.tmr_elm } hidden=true
