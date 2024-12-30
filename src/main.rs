@@ -404,6 +404,8 @@ fn main_route(routes: MainRoute) -> Html {
         }</a> }
     }
 
+    //if let Some(elm) = web_sys::window().unwrap().document().unwrap()
+    //    .get_element_by_id("spinner") { elm.remove(); }
     #[allow(clippy::let_unit_value)] match routes {
         MainRoute::Home  => html! { <>
             //margin: 0 auto;   //class: justify-center;    // XXX: not working
@@ -411,6 +413,7 @@ fn main_route(routes: MainRoute) -> Html {
                 body { font-family: Courier, Monospace; text-align: center; height: 100vh; }
             " }</style>   // display: flex; flex-direction: column;
 
+            //<script>{ "document.getElementById('spinner').style.display = 'none';" }</script>
             <header class="text-4xl m-8"> <GHcorner/>
                 //{ Html::from_html_unchecked(include_str!("../assets/gh-corner.html").into()) }
                 <a href="https://github.com/mhfan/inrust">{ "24 Challenge" }</a>
