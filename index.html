@@ -2,15 +2,30 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <!--link data-trunk rel="css" href="dist/main.css"/-->
   <link rel="stylesheet" href="/inyew/tailwind-a7e89c279fc5200.css" integrity="sha384&#x2D;KBJb&#x2F;rNLy8rLYni8sLk1oW4IlvwzwDz6f6Kyz0YbBrOVTbNU5lmsLf1wUIDJRUgZ"/>
   
   
   <!-- base href="/inyew/" -->
   <title>24 Puzzle</title>
-<link rel="modulepreload" href="/inyew/inyew-990caefa4804d4ae.js" crossorigin=anonymous integrity="sha384-SWg02iaqFsChZYzBQuyWerIMinqxE2AwSx5lkFfx1KWpVsVS59SOE4gWtff5YmmD"><link rel="preload" href="/inyew/inyew-990caefa4804d4ae_bg.wasm" crossorigin=anonymous integrity="sha384-X+ie4KCxlO/vmPEO/RALEuGCjVEbysNuM4gnfDaeQgTLkN8/f65Cahf+4cD+qV6Y" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="/inyew/inyew-9434f0384a352b97.js" crossorigin=anonymous integrity="sha384-NN7ZJ0OPQSmyhgGdKN7KGJemdTnfq+SCGt7oMCPMFdKPpQ59dTvVB6MjpctzylFO"><link rel="preload" href="/inyew/inyew-9434f0384a352b97_bg.wasm" crossorigin=anonymous integrity="sha384-j84zgKbl3raQqadrUFMtVjk+RqFvS807u09I9+7NtA6BBXk4OO6A0WbyPurNtjSW" as="fetch" type="application/wasm"></head>
 <body>
+  <div class="spin-container" id="spinner"></div>
+    <style>
+.spin-container { position: absolute; display: flex;
+  justify-content: center; width: 100vw; margin-top: 8rem;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin-anim { color: #e5e7eb; stroke: #2563eb; animation: spin 1s linear infinite; }
+    </style>
+    <svg viewBox="0 0 100 100" class="spin-anim" xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true" fill="none" stroke-width="5" width="100" height="100">
+      <circle cx="50" cy="50" r="45" stroke="currentColor"/>
+      <path d="M50,5a45,45 0 0 1 45,45" stroke-linecap="round" stroke="currentStroke"/>
+    </svg>
+  </div>
   <!-- Start Single Page Apps for GitHub Pages -->
   <script type="text/javascript">
     // Single Page Apps for GitHub Pages, MIT License
@@ -35,9 +50,9 @@
   </script>
   <!-- End Single Page Apps for GitHub Pages -->
 
-<script type="module" nonce="bgQuPf0CODJWeePfH9RYMg==">
-import init, * as bindings from '/inyew/inyew-990caefa4804d4ae.js';
-const wasm = await init({ module_or_path: '/inyew/inyew-990caefa4804d4ae_bg.wasm' });
+<script type="module" nonce="TqdwElseDB6M8KYo/5w/vA==">
+import init, * as bindings from '/inyew/inyew-9434f0384a352b97.js';
+const wasm = await init({ module_or_path: '/inyew/inyew-9434f0384a352b97_bg.wasm' });
 
 
 window.wasmBindings = bindings;
