@@ -148,7 +148,7 @@ impl Component for Game24State {
                 if  self.opd_elq.len() == 2 { self.form_expr(); }
             }
 
-            Msg::Operands(inp) => if self.ncnt != self.nums.len() as u8 {
+            Msg::Operands(inp) => if self.ncnt != self.nums.len() as u8 && inp.read_only() {
                 let opd = &mut self.opd_elq;
                 let mut idx = opd.len();
 
@@ -169,7 +169,12 @@ impl Component for Game24State {
                     inp.get_attribute("id").unwrap().starts_with("N")*/
                 //let end = inp.value().len() as u32;
                 //inp.set_selection_range(end, end).unwrap();
-                inp.set_read_only(false);   inp.focus().unwrap();
+                inp.set_read_only(false);
+                use yew::platform::{spawn_local, time::sleep};
+                spawn_local(async move {
+                    sleep(std::time::Duration::from_millis(20)).await;
+                    inp.focus().unwrap();   // XXX: why need to click again?
+                });
             }
 
             Msg::Overall(s) => {
@@ -246,7 +251,7 @@ impl Component for Game24State {
     let num_changed = link.batch_callback(|e: Event| {
         let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
 
-        if  inp.check_validity() {   inp.set_read_only(true);
+        if  inp.check_validity() && !inp.value().is_empty() {   inp.set_read_only(true);
             Some(Msg::Update(inp.get_attribute("id").unwrap().get(1..).unwrap()
                 .parse::<u8>().ok(), inp.value().parse::<Rational>().unwrap()))
         } else { if inp.focus().is_ok() { inp.select() }    None }
@@ -324,8 +329,8 @@ impl Component for Game24State {
                 placeholder="???" inputmode="numeric" pattern=r"\s*(-?\d+(\/\d+)?\s*){2,9}"
                 onchange={ link.batch_callback(|e: Event| {
                     let inp = e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-                    let vs  = inp.value();
-                    if  inp.check_validity() && !vs.is_empty() { Some(Msg::Overall(vs))
+                    if  inp.check_validity() && !inp.value().is_empty() {
+                        Some(Msg::Overall(inp.value()))
                     } else { if inp.focus().is_ok() { inp.select() }    None }
                 })} ref={ &self.ovr_elm } hidden=true
                 class={ classes!(num_class, "aria-checked:ring-purple-600",
@@ -424,7 +429,7 @@ fn main_route(routes: MainRoute) -> Html {
             // https://www.w3schools.com
             // https://developer.mozilla.org/en-US/docs/Web/HTML
 
-            <footer clase="m-4">{ "Copyright © 2022 by " }  // &copy; // "absolute bottom-0"
+            <footer class="m-4">{ "Copyright © 2022 by " }  // &copy; // "absolute bottom-0"
                 <a href="https://github.com/mhfan">{ "mhfan" }</a>
                 //<div align="center">
                 //    <img src="https://page-views.glitch.me/badge?page_id=/24-puzzle"/></div>

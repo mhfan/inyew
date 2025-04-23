@@ -29,7 +29,7 @@
 ![24 puzzle by Tauri](assets/tauri-24-puzzle.jpg?raw=true)
 
 Based on [Yew Template](https://github.com/Ja-sonYun/yew-template-for-github-io) for
-[Github.io](https://pages.github.com/), with [tailwind.css](https://tailwindcss.com/) and
+[Github.io](https://pages.github.com/), with [TailwindCSS](https://tailwindcss.com/) and
 [trunk](https://trunkrs.dev) for build.
 
 ## TODO
